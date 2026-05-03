@@ -1,0 +1,64 @@
+plugins {
+    id 'com.android.application'
+    id 'kotlin-android'
+}
+
+android {
+    namespace 'com.xreal360.viewer'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId "com.xreal360.viewer"
+        minSdk 29
+        targetSdk 35
+        versionCode 1
+        versionName "1.0"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = '17'
+    }
+
+    buildFeatures {
+        viewBinding true
+    }
+}
+
+dependencies {
+    implementation 'androidx.core:core-ktx:1.16.0'
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'com.google.android.material:material:1.11.0'
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+    implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.7.0'
+    implementation 'androidx.core:core-splashscreen:1.0.1'
+
+    // ExoPlayer for 360 video
+    implementation 'androidx.media3:media3-exoplayer:1.2.1'
+    implementation 'androidx.media3:media3-ui:1.2.1'
+
+    // XREAL SDK
+    // NOTE: Replace with the actual artifact ID from your XREAL developer portal.
+    // Common identifiers: 'com.nreal.air:nrsdk:2.x.x' or 'ai.xreal:xrealsdk:x.x.x'
+    // Download the AAR from https://developer.xreal.com and place it in app/libs/ if Maven is unavailable:
+     implementation fileTree(dir: 'libs', include: ['*.aar'], exclude: ['nractivitylife-release.aar'])
+    // implementation 'ai.xreal:xrealsdk:2.2.0'
+
+    // Coroutines
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0'
+
+    //new
+
+
+}
