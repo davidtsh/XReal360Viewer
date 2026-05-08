@@ -78,11 +78,11 @@
         android:id="@+id/tvCredit"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="4dp"
+        android:layout_marginBottom="8dp"
+        android:letterSpacing="0.5"
         android:text="vibe-coded by davidtsh"
         android:textColor="#777777"
         android:textSize="10sp"
-        android:letterSpacing="0.5"
         app:layout_constraintBottom_toTopOf="@id/tvVersion"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
@@ -91,12 +91,13 @@
         android:id="@+id/tvVersion"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="40dp"
+        android:layout_marginBottom="64dp"
         android:text="v1.1.0"
         android:textColor="#444444"
         android:textSize="9sp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.501"
         app:layout_constraintStart_toStartOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
