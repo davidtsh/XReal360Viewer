@@ -66,7 +66,7 @@ class MainActivity : AppCompatActivity() {
             val pInfo = packageManager.getPackageInfo(packageName, 0)
             binding.tvVersion.text = "v${pInfo.versionName}"
         } catch (e: Exception) {
-            binding.tvVersion.text = "v1.0"
+            binding.tvVersion.text = "v1.1.0"
         }
 
         binding.btnPickImage.setOnClickListener { checkPermissionsAndOpen("image/*") }

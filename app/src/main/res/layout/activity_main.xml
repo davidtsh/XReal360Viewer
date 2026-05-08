@@ -47,12 +47,12 @@
         android:id="@+id/tvCredit"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="10dp"
+        android:layout_marginBottom="4dp"
         android:text="vibe-coded by davidtsh"
         android:textColor="#777777"
         android:textSize="10sp"
         android:letterSpacing="0.5"
-        app:layout_constraintTop_toBottomOf="@id/btnPickVideo"
+        app:layout_constraintBottom_toTopOf="@id/tvVersion"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
 
@@ -60,11 +60,11 @@
         android:id="@+id/tvVersion"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:text="v1.0"
+        android:layout_marginBottom="40dp"
+        android:text="v1.1.0"
         android:textColor="#444444"
         android:textSize="9sp"
-        app:layout_constraintTop_toBottomOf="@id/tvCredit"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
 
