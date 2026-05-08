@@ -128,8 +128,11 @@ class ViewerActivity : AppCompatActivity() {
                 MotionEvent.ACTION_UP -> {
                     val dx = event.x - touchDownX
                     val dy = event.y - touchDownY
-                    if (!gestureWasPinch && abs(dx) > SWIPE_THRESHOLD_PX && abs(dx) > abs(dy)) {
-                        if (dx < 0f) showNextMedia() else showPreviousMedia()
+                    val isHorizontalSwipe = abs(dx) > SWIPE_THRESHOLD_PX && abs(dx) > abs(dy)
+                    val isVerticalSwipe = abs(dy) > SWIPE_THRESHOLD_PX && abs(dy) > abs(dx)
+                    if (!gestureWasPinch && (isHorizontalSwipe || isVerticalSwipe)) {
+                        val next = if (isHorizontalSwipe) dx < 0f else dy < 0f
+                        if (next) showNextMedia() else showPreviousMedia()
                     } else if (!gestureWasPinch) {
                         view.performClick()
                     }
