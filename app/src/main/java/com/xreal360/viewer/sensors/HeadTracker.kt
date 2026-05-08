@@ -9,10 +9,14 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import io.onexr.XrPoseDataMode
+import kotlin.math.cos
+import kotlin.math.sin
+
 class HeadTracker(private val context: Context) {
 
     interface Listener {
         fun onRotationMatrix(matrix: FloatArray)
+        fun onOrientation(yaw: Float, pitch: Float, roll: Float) = Unit
     }
 
     var listener: Listener? = null
@@ -45,24 +49,31 @@ class HeadTracker(private val context: Context) {
                     val pitch = it.relativeOrientation.pitch
                     val roll  = it.relativeOrientation.roll
 
+                    listener?.onOrientation(yaw, pitch, roll)
+
                     val mat = FloatArray(16)
-                    Matrix.setIdentityM(mat, 0)
 
+                    val yawRadians = Math.toRadians((-yaw).toDouble())
+                    val pitchRadians = Math.toRadians((-pitch).toDouble())
+                    val cosPitch = cos(pitchRadians)
 
-                    val verticalBase = -70f
-                    val pitchUpGain = 1.6f
+                    val lookX = (cosPitch * cos(yawRadians)).toFloat()
+                    val lookY = sin(pitchRadians).toFloat()
+                    val lookZ = (-cosPitch * sin(yawRadians)).toFloat()
 
-                    val verticalAngle = -roll + verticalBase
-                    val boostedVerticalAngle =
-                        if (verticalAngle > verticalBase) {
-                            verticalBase + (verticalAngle - verticalBase) * pitchUpGain
-                        } else {
-                            verticalAngle
-                        }
-
-                    Matrix.rotateM(mat, 0, yaw - 90f, 0f, 1.0f, 0f)
-                    Matrix.rotateM(mat, 0, boostedVerticalAngle, 1.0f, 0f, 0f)
-                    Matrix.rotateM(mat, 0, -pitch, 0f, 0f, 1.0f)
+                    Matrix.setLookAtM(
+                        mat,
+                        0,
+                        0f,
+                        0f,
+                        0f,
+                        lookX,
+                        lookY,
+                        lookZ,
+                        0f,
+                        1f,
+                        0f
+                    )
 
                     listener?.onRotationMatrix(mat)
                 }
