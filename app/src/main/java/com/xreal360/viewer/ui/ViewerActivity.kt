@@ -27,7 +27,7 @@ class ViewerActivity : AppCompatActivity() {
         const val EXTRA_INDEX = "index"
         const val EXTRA_IS_VIDEO = "is_video"
         private const val SWIPE_THRESHOLD_PX = 120f
-        private const val MIN_ZOOM_FACTOR = 1f
+        private const val MIN_ZOOM_FACTOR = 0.65f
         private const val MAX_ZOOM_FACTOR = 3f
     }
 

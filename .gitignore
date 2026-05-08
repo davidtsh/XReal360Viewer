@@ -1,5 +1,12 @@
 # Project exclude paths
+**/.DS_Store
+/.idea/
 /.gradle/
+/.kotlin/
+/local.properties
 /app/build/
+/app/libs/
+/app/src/main/res/raw/mipmap-*/
+/app/src/main/res/xxx/
 /app/build/intermediates/javac/debug/compileDebugJavaWithJavac/classes/
 /build/

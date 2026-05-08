@@ -157,7 +157,7 @@ class Panorama360Renderer(private val context: Context) : GLSurfaceView.Renderer
 
     companion object {
         private const val DEFAULT_FIELD_OF_VIEW_DEGREES = 90f
-        private const val MIN_ZOOM_FACTOR = 1f
+        private const val MIN_ZOOM_FACTOR = 0.65f
         private const val MAX_ZOOM_FACTOR = 3f
     }
 }
