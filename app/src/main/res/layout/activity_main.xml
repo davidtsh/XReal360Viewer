@@ -52,7 +52,7 @@
         android:layout_marginEnd="32dp"
         android:gravity="center"
         android:lineSpacingExtra="4dp"
-        android:text="tap to select new image or video&#10;slide up and down to change image or video&#10;pinch to zoom"
+        android:text="When image or video is selected:&#10;tap to select new image or video&#10;slide up and down to change image or video&#10;pinch to zoom"
         android:textColor="#9A9A9A"
         android:textSize="12sp"
         app:layout_constraintEnd_toEndOf="parent"
