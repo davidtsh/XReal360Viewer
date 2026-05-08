@@ -17,7 +17,8 @@ android {
 
     buildTypes {
         release {
-            minifyEnabled false
+            minifyEnabled true
+            shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
@@ -46,14 +47,10 @@ dependencies {
 
     // ExoPlayer for 360 video
     implementation 'androidx.media3:media3-exoplayer:1.2.1'
-    implementation 'androidx.media3:media3-ui:1.2.1'
 
-    // XREAL SDK
-    // NOTE: Replace with the actual artifact ID from your XREAL developer portal.
-    // Common identifiers: 'com.nreal.air:nrsdk:2.x.x' or 'ai.xreal:xrealsdk:x.x.x'
-    // Download the AAR from https://developer.xreal.com and place it in app/libs/ if Maven is unavailable:
-     implementation fileTree(dir: 'libs', include: ['*.aar'], exclude: ['nractivitylife-release.aar'])
-    // implementation 'ai.xreal:xrealsdk:2.2.0'
+    // The current tracker uses the local io.onexr socket client, so do not package
+    // the large XREAL SDK AARs from app/libs by default.
+    // implementation fileTree(dir: 'libs', include: ['*.aar'], exclude: ['nractivitylife-release.aar'])
 
     // Coroutines
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0'
