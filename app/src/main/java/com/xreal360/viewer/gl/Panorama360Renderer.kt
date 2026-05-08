@@ -16,6 +16,8 @@ class Panorama360Renderer(private val context: Context) : GLSurfaceView.Renderer
     private val projectionMatrix = FloatArray(16)
     private val mvpMatrix = FloatArray(16)
     private val rotationMatrix = FloatArray(16).also { Matrix.setIdentityM(it, 0) }
+    private var viewportRatio = 1f
+    private var fieldOfViewDegrees = DEFAULT_FIELD_OF_VIEW_DEGREES
 
     private lateinit var sphere: SphereGeometry
     private lateinit var shader: ShaderProgram
@@ -71,8 +73,8 @@ class Panorama360Renderer(private val context: Context) : GLSurfaceView.Renderer
 
     override fun onSurfaceChanged(gl: GL10?, width: Int, height: Int) {
         GLES20.glViewport(0, 0, width, height)
-        val ratio = width.toFloat() / height
-        Matrix.perspectiveM(projectionMatrix, 0, 90f, ratio, 0.1f, 200f)
+        viewportRatio = width.toFloat() / height
+        updateProjectionMatrix()
     }
 
     override fun onDrawFrame(gl: GL10?) {
@@ -141,5 +143,21 @@ class Panorama360Renderer(private val context: Context) : GLSurfaceView.Renderer
 
     fun setRotationMatrix(matrix: FloatArray) {
         System.arraycopy(matrix, 0, rotationMatrix, 0, 16)
+    }
+
+    fun setZoomFactor(zoomFactor: Float) {
+        val clampedZoom = zoomFactor.coerceIn(MIN_ZOOM_FACTOR, MAX_ZOOM_FACTOR)
+        fieldOfViewDegrees = DEFAULT_FIELD_OF_VIEW_DEGREES / clampedZoom
+        updateProjectionMatrix()
+    }
+
+    private fun updateProjectionMatrix() {
+        Matrix.perspectiveM(projectionMatrix, 0, fieldOfViewDegrees, viewportRatio, 0.1f, 200f)
+    }
+
+    companion object {
+        private const val DEFAULT_FIELD_OF_VIEW_DEGREES = 90f
+        private const val MIN_ZOOM_FACTOR = 1f
+        private const val MAX_ZOOM_FACTOR = 3f
     }
 }

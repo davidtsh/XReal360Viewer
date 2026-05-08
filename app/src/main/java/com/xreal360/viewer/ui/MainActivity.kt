@@ -1,6 +1,7 @@
 package com.xreal360.viewer.ui
 
 import android.Manifest
+import android.content.ContentUris
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -8,6 +9,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.DocumentsContract
+import android.provider.MediaStore
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContract
 import androidx.activity.result.contract.ActivityResultContracts
@@ -68,6 +70,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         binding.btnPickImage.setOnClickListener { checkPermissionsAndOpen("image/*") }
+        binding.btnPickVideo.setOnClickListener { checkPermissionsAndOpen("video/*") }
 
         if (intent.getBooleanExtra(EXTRA_AUTO_OPEN, false)) {
             checkPermissionsAndOpen("image/*")
@@ -115,12 +118,115 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun openViewer(uri: Uri) {
-        val isVideo = contentResolver.getType(uri)?.startsWith("video") == true
+        val playlist = buildFolderPlaylist(uri)
+        val isVideo = contentResolver.getType(playlist.uris[playlist.index])?.startsWith("video") == true
         val intent = Intent(this, ViewerActivity::class.java).apply {
-            putExtra(ViewerActivity.EXTRA_URI, uri.toString())
+            putExtra(ViewerActivity.EXTRA_URI, playlist.uris[playlist.index].toString())
+            putStringArrayListExtra(ViewerActivity.EXTRA_URIS, ArrayList(playlist.uris.map { it.toString() }))
+            putExtra(ViewerActivity.EXTRA_INDEX, playlist.index)
             putExtra(ViewerActivity.EXTRA_IS_VIDEO, isVideo)
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
         startActivity(intent)
+    }
+
+    private data class MediaPlaylist(
+        val uris: List<Uri>,
+        val index: Int
+    )
+
+    private fun buildFolderPlaylist(selectedUri: Uri): MediaPlaylist {
+        val selectedMedia = resolveMediaStoreItem(selectedUri) ?: return MediaPlaylist(listOf(selectedUri), 0)
+        val bucketId = queryBucketId(selectedMedia.uri, selectedMedia.isVideo)
+            ?: return MediaPlaylist(listOf(selectedMedia.uri), 0)
+
+        val collection = if (selectedMedia.isVideo) {
+            MediaStore.Video.Media.EXTERNAL_CONTENT_URI
+        } else {
+            MediaStore.Images.Media.EXTERNAL_CONTENT_URI
+        }
+
+        val idColumn = MediaStore.MediaColumns._ID
+        val bucketColumn = if (selectedMedia.isVideo) {
+            MediaStore.Video.Media.BUCKET_ID
+        } else {
+            MediaStore.Images.Media.BUCKET_ID
+        }
+        val projection = arrayOf(idColumn)
+        val selection = "$bucketColumn = ?"
+        val sortOrder = "${MediaStore.MediaColumns.DISPLAY_NAME} ASC"
+        val uris = mutableListOf<Uri>()
+        var selectedIndex = 0
+
+        contentResolver.query(collection, projection, selection, arrayOf(bucketId), sortOrder)?.use { cursor ->
+            val idIndex = cursor.getColumnIndexOrThrow(idColumn)
+            while (cursor.moveToNext()) {
+                val id = cursor.getLong(idIndex)
+                val itemUri = ContentUris.withAppendedId(collection, id)
+                if (id == selectedMedia.id) selectedIndex = uris.size
+                uris.add(itemUri)
+            }
+        }
+
+        return if (uris.isEmpty()) {
+            MediaPlaylist(listOf(selectedMedia.uri), 0)
+        } else {
+            MediaPlaylist(uris, selectedIndex)
+        }
+    }
+
+    private data class MediaStoreItem(
+        val uri: Uri,
+        val id: Long,
+        val isVideo: Boolean
+    )
+
+    private fun resolveMediaStoreItem(uri: Uri): MediaStoreItem? {
+        val mimeType = contentResolver.getType(uri).orEmpty()
+        val mimeLooksVideo = mimeType.startsWith("video")
+
+        if (DocumentsContract.isDocumentUri(this, uri) && uri.authority == "com.android.providers.media.documents") {
+            val parts = DocumentsContract.getDocumentId(uri).split(":")
+            if (parts.size == 2) {
+                val type = parts[0]
+                val id = parts[1].toLongOrNull() ?: return null
+                val isVideo = type == "video"
+                val collection = if (isVideo) {
+                    MediaStore.Video.Media.EXTERNAL_CONTENT_URI
+                } else {
+                    MediaStore.Images.Media.EXTERNAL_CONTENT_URI
+                }
+                return MediaStoreItem(ContentUris.withAppendedId(collection, id), id, isVideo)
+            }
+        }
+
+        if (uri.authority == "media") {
+            val id = uri.lastPathSegment?.toLongOrNull() ?: return null
+            return MediaStoreItem(uri, id, mimeLooksVideo)
+        }
+
+        return null
+    }
+
+    private fun queryBucketId(uri: Uri, isVideo: Boolean): String? {
+        val bucketColumn = if (isVideo) {
+            MediaStore.Video.Media.BUCKET_ID
+        } else {
+            MediaStore.Images.Media.BUCKET_ID
+        }
+        val collection = if (isVideo) {
+            MediaStore.Video.Media.EXTERNAL_CONTENT_URI
+        } else {
+            MediaStore.Images.Media.EXTERNAL_CONTENT_URI
+        }
+        val id = uri.lastPathSegment?.toLongOrNull() ?: return null
+        val selection = "${MediaStore.MediaColumns._ID} = ?"
+
+        contentResolver.query(collection, arrayOf(bucketColumn), selection, arrayOf(id.toString()), null)?.use { cursor ->
+            if (cursor.moveToFirst()) {
+                return cursor.getString(cursor.getColumnIndexOrThrow(bucketColumn))
+            }
+        }
+        return null
     }
 }
