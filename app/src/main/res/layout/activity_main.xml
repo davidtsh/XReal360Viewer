@@ -25,7 +25,7 @@
         android:layout_width="220dp"
         android:layout_height="56dp"
         android:backgroundTint="#333333"
-        android:text="Open 360° Image"
+        android:text="Open 360º file"
         android:textSize="13sp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
@@ -33,19 +33,6 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_bias="0.44" />
-
-    <Button
-        android:id="@+id/btnPickVideo"
-        android:layout_width="220dp"
-        android:layout_height="56dp"
-        android:layout_marginTop="8dp"
-        android:backgroundTint="#333333"
-        android:text="Open 360° Video"
-        android:textSize="13sp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.502"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/btnPickImage" />
 
     <TextView
         android:id="@+id/tvInstructions"
@@ -78,7 +65,7 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/btnPickVideo" />
+        app:layout_constraintTop_toBottomOf="@id/btnPickImage" />
 
     <TextView
         android:id="@+id/tvCredit"

@@ -17,6 +17,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.xreal360.viewer.databinding.ActivityMainBinding
+import java.util.Locale
 
 class MainActivity : AppCompatActivity() {
 
@@ -54,6 +55,7 @@ class MainActivity : AppCompatActivity() {
 
     companion object {
         const val EXTRA_AUTO_OPEN = "auto_open"
+        private val SUPPORTED_MIME_TYPES = arrayOf("image/*", "video/*")
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -69,18 +71,16 @@ class MainActivity : AppCompatActivity() {
             binding.tvVersion.text = "v1.1.0"
         }
 
-        binding.btnPickImage.setOnClickListener { checkPermissionsAndOpen("image/*") }
-        binding.btnPickVideo.setOnClickListener { checkPermissionsAndOpen("video/*") }
+        binding.btnPickImage.setOnClickListener { checkPermissionsAndOpen() }
 
         if (intent.getBooleanExtra(EXTRA_AUTO_OPEN, false)) {
-            checkPermissionsAndOpen("image/*")
+            checkPermissionsAndOpen()
         }
     }
 
-    private fun checkPermissionsAndOpen(mimeType: String) {
+    private fun checkPermissionsAndOpen() {
         val required = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (mimeType.startsWith("video")) arrayOf(Manifest.permission.READ_MEDIA_VIDEO)
-            else arrayOf(Manifest.permission.READ_MEDIA_IMAGES)
+            arrayOf(Manifest.permission.READ_MEDIA_IMAGES, Manifest.permission.READ_MEDIA_VIDEO)
         } else {
             arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE)
         }
@@ -90,19 +90,15 @@ class MainActivity : AppCompatActivity() {
         }
 
         if (notGranted.isEmpty()) {
-            pendingMime = mimeType
             openGallery()
         } else {
-            pendingMime = mimeType
             permissionLauncher.launch(notGranted.toTypedArray())
         }
     }
 
-    private var pendingMime = "image/*"
-
     private fun openGallery() {
         val lastUri = getLastUri()
-        galleryLauncher.launch(arrayOf(pendingMime) to lastUri)
+        galleryLauncher.launch(SUPPORTED_MIME_TYPES to lastUri)
     }
 
     private fun saveLastUri(uri: Uri) {
@@ -140,39 +136,68 @@ class MainActivity : AppCompatActivity() {
         val bucketId = queryBucketId(selectedMedia.uri, selectedMedia.isVideo)
             ?: return MediaPlaylist(listOf(selectedMedia.uri), 0)
 
-        val collection = if (selectedMedia.isVideo) {
-            MediaStore.Video.Media.EXTERNAL_CONTENT_URI
-        } else {
-            MediaStore.Images.Media.EXTERNAL_CONTENT_URI
-        }
+        val entries = (
+            queryBucketMedia(
+                collection = MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+                bucketColumn = MediaStore.Images.Media.BUCKET_ID,
+                bucketId = bucketId,
+                isVideo = false
+            ) + queryBucketMedia(
+                collection = MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
+                bucketColumn = MediaStore.Video.Media.BUCKET_ID,
+                bucketId = bucketId,
+                isVideo = true
+            )
+        ).sortedWith(
+            compareBy<MediaPlaylistEntry> { it.displayName.lowercase(Locale.getDefault()) }
+                .thenBy { it.uri.toString() }
+        )
 
+        return if (entries.isEmpty()) {
+            MediaPlaylist(listOf(selectedMedia.uri), 0)
+        } else {
+            val uris = entries.map { it.uri }
+            val selectedIndex = entries.indexOfFirst {
+                it.id == selectedMedia.id && it.isVideo == selectedMedia.isVideo
+            }.let { if (it >= 0) it else 0 }
+            MediaPlaylist(uris, selectedIndex)
+        }
+    }
+
+    private data class MediaPlaylistEntry(
+        val uri: Uri,
+        val id: Long,
+        val isVideo: Boolean,
+        val displayName: String
+    )
+
+    private fun queryBucketMedia(
+        collection: Uri,
+        bucketColumn: String,
+        bucketId: String,
+        isVideo: Boolean
+    ): List<MediaPlaylistEntry> {
         val idColumn = MediaStore.MediaColumns._ID
-        val bucketColumn = if (selectedMedia.isVideo) {
-            MediaStore.Video.Media.BUCKET_ID
-        } else {
-            MediaStore.Images.Media.BUCKET_ID
-        }
-        val projection = arrayOf(idColumn)
+        val displayNameColumn = MediaStore.MediaColumns.DISPLAY_NAME
+        val projection = arrayOf(idColumn, displayNameColumn)
         val selection = "$bucketColumn = ?"
-        val sortOrder = "${MediaStore.MediaColumns.DISPLAY_NAME} ASC"
-        val uris = mutableListOf<Uri>()
-        var selectedIndex = 0
+        val entries = mutableListOf<MediaPlaylistEntry>()
 
-        contentResolver.query(collection, projection, selection, arrayOf(bucketId), sortOrder)?.use { cursor ->
+        contentResolver.query(collection, projection, selection, arrayOf(bucketId), null)?.use { cursor ->
             val idIndex = cursor.getColumnIndexOrThrow(idColumn)
+            val displayNameIndex = cursor.getColumnIndexOrThrow(displayNameColumn)
             while (cursor.moveToNext()) {
                 val id = cursor.getLong(idIndex)
-                val itemUri = ContentUris.withAppendedId(collection, id)
-                if (id == selectedMedia.id) selectedIndex = uris.size
-                uris.add(itemUri)
+                entries += MediaPlaylistEntry(
+                    uri = ContentUris.withAppendedId(collection, id),
+                    id = id,
+                    isVideo = isVideo,
+                    displayName = cursor.getString(displayNameIndex).orEmpty()
+                )
             }
         }
 
-        return if (uris.isEmpty()) {
-            MediaPlaylist(listOf(selectedMedia.uri), 0)
-        } else {
-            MediaPlaylist(uris, selectedIndex)
-        }
+        return entries
     }
 
     private data class MediaStoreItem(
