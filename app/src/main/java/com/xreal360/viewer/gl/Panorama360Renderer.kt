@@ -23,7 +23,7 @@ class Panorama360Renderer(private val context: Context) : GLSurfaceView.Renderer
     private lateinit var shader: ShaderProgram
 
     private val textures = IntArray(2)
-    private var useVideoTexture = false
+    @Volatile private var useVideoTexture = false
 
     var surfaceTexture: SurfaceTexture? = null
         private set
@@ -53,22 +53,9 @@ class Panorama360Renderer(private val context: Context) : GLSurfaceView.Renderer
 
         GLES20.glGenTextures(2, textures, 0)
 
-        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textures[0])
-        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_LINEAR)
-        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR)
-        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_S, GLES20.GL_CLAMP_TO_EDGE)
-        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_T, GLES20.GL_CLAMP_TO_EDGE)
-
-        GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, textures[1])
-        GLES20.glTexParameteri(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_LINEAR)
-        GLES20.glTexParameteri(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR)
-        GLES20.glTexParameteri(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_WRAP_S, GLES20.GL_CLAMP_TO_EDGE)
-        GLES20.glTexParameteri(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_WRAP_T, GLES20.GL_CLAMP_TO_EDGE)
-
-        surfaceTexture = SurfaceTexture(textures[1]).also { st ->
-            st.setOnFrameAvailableListener { videoTextureUpdated = true }
-            onVideoSurfaceReady?.invoke(st)
-        }
+        configureImageTexture()
+        configureVideoTexture()
+        createVideoSurfaceTexture(notifyReady = true)
     }
 
     override fun onSurfaceChanged(gl: GL10?, width: Int, height: Int) {
@@ -141,6 +128,25 @@ class Panorama360Renderer(private val context: Context) : GLSurfaceView.Renderer
         useVideoTexture = true
     }
 
+    fun switchToImage() {
+        useVideoTexture = false
+    }
+
+    fun resetVideoTexture(): SurfaceTexture {
+        surfaceTexture?.setOnFrameAvailableListener(null)
+        surfaceTexture?.release()
+        surfaceTexture = null
+        videoTextureUpdated = false
+
+        if (textures[1] != 0) {
+            GLES20.glDeleteTextures(1, textures, 1)
+        }
+        GLES20.glGenTextures(1, textures, 1)
+        configureVideoTexture()
+        useVideoTexture = true
+        return createVideoSurfaceTexture(notifyReady = false)
+    }
+
     fun setRotationMatrix(matrix: FloatArray) {
         System.arraycopy(matrix, 0, rotationMatrix, 0, 16)
     }
@@ -153,6 +159,32 @@ class Panorama360Renderer(private val context: Context) : GLSurfaceView.Renderer
 
     private fun updateProjectionMatrix() {
         Matrix.perspectiveM(projectionMatrix, 0, fieldOfViewDegrees, viewportRatio, 0.1f, 200f)
+    }
+
+    private fun configureImageTexture() {
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textures[0])
+        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_LINEAR)
+        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR)
+        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_S, GLES20.GL_CLAMP_TO_EDGE)
+        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_T, GLES20.GL_CLAMP_TO_EDGE)
+    }
+
+    private fun configureVideoTexture() {
+        GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, textures[1])
+        GLES20.glTexParameteri(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_LINEAR)
+        GLES20.glTexParameteri(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR)
+        GLES20.glTexParameteri(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_WRAP_S, GLES20.GL_CLAMP_TO_EDGE)
+        GLES20.glTexParameteri(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_WRAP_T, GLES20.GL_CLAMP_TO_EDGE)
+    }
+
+    private fun createVideoSurfaceTexture(notifyReady: Boolean): SurfaceTexture {
+        return SurfaceTexture(textures[1]).also { st ->
+            surfaceTexture = st
+            st.setOnFrameAvailableListener { videoTextureUpdated = true }
+            if (notifyReady) {
+                onVideoSurfaceReady?.invoke(st)
+            }
+        }
     }
 
     companion object {

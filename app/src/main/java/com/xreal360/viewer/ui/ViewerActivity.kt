@@ -41,10 +41,11 @@ class ViewerActivity : AppCompatActivity() {
     private lateinit var renderer: Panorama360Renderer
     private lateinit var headTracker: HeadTracker
     private var exoPlayer: ExoPlayer? = null
-    private var videoSurfaceTexture: SurfaceTexture? = null
+    @Volatile private var videoSurfaceTexture: SurfaceTexture? = null
     private var videoSurface: Surface? = null
     private var mediaUris: List<Uri> = emptyList()
     private var currentIndex = 0
+    @Volatile private var mediaGeneration = 0
     private var touchDownX = 0f
     private var touchDownY = 0f
     private var zoomFactor = 1f
@@ -187,14 +188,41 @@ class ViewerActivity : AppCompatActivity() {
         if (mediaUris.isEmpty()) return
         cancelVideoFastForward()
         currentIndex = wrapIndex(index)
+        val targetGeneration = ++mediaGeneration
+        val targetIndex = currentIndex
         val uri = mediaUris[currentIndex]
 
         if (isVideoUri(uri)) {
-            renderer.switchToVideo()
-            videoSurfaceTexture?.let { setupVideo(uri, it) }
+            releaseVideo()
+            if (videoSurfaceTexture == null) {
+                binding.glSurfaceView.queueEvent {
+                    if (mediaGeneration == targetGeneration) {
+                        renderer.switchToVideo()
+                    }
+                }
+                return
+            }
+            binding.glSurfaceView.queueEvent {
+                if (mediaGeneration != targetGeneration) return@queueEvent
+                val surfaceTexture = renderer.resetVideoTexture()
+                runOnUiThread {
+                    videoSurfaceTexture = surfaceTexture
+                    val stillCurrent = mediaGeneration == targetGeneration &&
+                        currentIndex == targetIndex &&
+                        mediaUris.getOrNull(currentIndex) == uri
+                    if (stillCurrent) {
+                        setupVideo(uri, surfaceTexture)
+                    }
+                }
+            }
         } else {
             releaseVideo()
-            loadImage(uri)
+            binding.glSurfaceView.queueEvent {
+                if (mediaGeneration == targetGeneration) {
+                    renderer.switchToImage()
+                }
+            }
+            loadImage(uri, targetGeneration)
         }
     }
 
@@ -284,14 +312,18 @@ class ViewerActivity : AppCompatActivity() {
         }
     }
 
-    private fun loadImage(uri: Uri) {
+    private fun loadImage(uri: Uri, targetGeneration: Int) {
         Thread {
             try {
                 val stream = contentResolver.openInputStream(uri) ?: return@Thread
                 val bitmap = BitmapFactory.decodeStream(stream)
                 stream.close()
                 if (bitmap != null) {
-                    renderer.loadBitmap(bitmap)
+                    if (mediaGeneration == targetGeneration) {
+                        renderer.loadBitmap(bitmap)
+                    } else {
+                        bitmap.recycle()
+                    }
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -334,6 +366,7 @@ class ViewerActivity : AppCompatActivity() {
 
     private fun releaseVideo() {
         cancelVideoFastForward()
+        exoPlayer?.clearVideoSurface()
         exoPlayer?.release()
         exoPlayer = null
         videoSurface?.release()
