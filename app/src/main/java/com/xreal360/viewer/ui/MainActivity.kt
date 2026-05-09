@@ -48,13 +48,18 @@ class MainActivity : AppCompatActivity() {
     // Gallery picker with initial URI support
     private val galleryLauncher = registerForActivityResult(OpenDocumentWithInitialUri()) { uri: Uri? ->
         uri?.let {
-            saveLastUri(it)
+            takeReadPermission(it)
+            saveLastSelection(it)
             openViewer(it)
         }
     }
 
     companion object {
         const val EXTRA_AUTO_OPEN = "auto_open"
+        private const val MEDIA_DOCUMENTS_AUTHORITY = "com.android.providers.media.documents"
+        private const val PREFS_NAME = "prefs"
+        private const val KEY_LAST_URI = "last_uri"
+        private const val KEY_LAST_BUCKET_ID = "last_bucket_id"
         private val SUPPORTED_MIME_TYPES = arrayOf("image/*", "video/*")
     }
 
@@ -97,20 +102,62 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun openGallery() {
-        val lastUri = getLastUri()
-        galleryLauncher.launch(SUPPORTED_MIME_TYPES to lastUri)
+        galleryLauncher.launch(SUPPORTED_MIME_TYPES to getLastFolderUri())
     }
 
-    private fun saveLastUri(uri: Uri) {
-        getSharedPreferences("prefs", Context.MODE_PRIVATE).edit()
-            .putString("last_uri", uri.toString())
-            .apply()
+    private fun takeReadPermission(uri: Uri) {
+        try {
+            contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        } catch (_: Exception) {
+            // Some providers do not grant persistable permissions; the folder hint still works.
+        }
+    }
+
+    private fun saveLastSelection(uri: Uri) {
+        val editor = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit()
+            .putString(KEY_LAST_URI, uri.toString())
+
+        val selectedMedia = resolveMediaStoreItem(uri)
+        val bucketId = selectedMedia?.let { queryBucketId(it.uri, it.isVideo) }
+        if (bucketId != null) {
+            editor.putString(KEY_LAST_BUCKET_ID, bucketId)
+        } else {
+            editor.remove(KEY_LAST_BUCKET_ID)
+        }
+
+        editor.apply()
     }
 
     private fun getLastUri(): Uri? {
-        val uriString = getSharedPreferences("prefs", Context.MODE_PRIVATE)
-            .getString("last_uri", null) ?: return null
+        val uriString = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .getString(KEY_LAST_URI, null) ?: return null
         return Uri.parse(uriString)
+    }
+
+    private fun getLastFolderUri(): Uri? {
+        val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val bucketId = prefs.getString(KEY_LAST_BUCKET_ID, null) ?: return getLastUri()
+        val entries = (
+            queryBucketMedia(
+                collection = MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+                bucketColumn = MediaStore.Images.Media.BUCKET_ID,
+                bucketId = bucketId,
+                isVideo = false
+            ) + queryBucketMedia(
+                collection = MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
+                bucketColumn = MediaStore.Video.Media.BUCKET_ID,
+                bucketId = bucketId,
+                isVideo = true
+            )
+        ).sortedWith(mediaSort())
+        val lastMedia = getLastUri()?.let { resolveMediaStoreItem(it) }
+        val initialEntry = if (lastMedia != null) {
+            entries.firstOrNull { it.id == lastMedia.id && it.isVideo == lastMedia.isVideo }
+        } else {
+            null
+        } ?: entries.firstOrNull()
+
+        return initialEntry?.toDocumentUri() ?: getLastUri()
     }
 
     private fun openViewer(uri: Uri) {
@@ -148,10 +195,7 @@ class MainActivity : AppCompatActivity() {
                 bucketId = bucketId,
                 isVideo = true
             )
-        ).sortedWith(
-            compareBy<MediaPlaylistEntry> { it.displayName.lowercase(Locale.getDefault()) }
-                .thenBy { it.uri.toString() }
-        )
+        ).sortedWith(mediaSort())
 
         return if (entries.isEmpty()) {
             MediaPlaylist(listOf(selectedMedia.uri), 0)
@@ -169,7 +213,17 @@ class MainActivity : AppCompatActivity() {
         val id: Long,
         val isVideo: Boolean,
         val displayName: String
-    )
+    ) {
+        fun toDocumentUri(): Uri {
+            val type = if (isVideo) "video" else "image"
+            return DocumentsContract.buildDocumentUri(MEDIA_DOCUMENTS_AUTHORITY, "$type:$id")
+        }
+    }
+
+    private fun mediaSort(): Comparator<MediaPlaylistEntry> {
+        return compareBy<MediaPlaylistEntry> { it.displayName.lowercase(Locale.getDefault()) }
+            .thenBy { it.uri.toString() }
+    }
 
     private fun queryBucketMedia(
         collection: Uri,
@@ -210,7 +264,7 @@ class MainActivity : AppCompatActivity() {
         val mimeType = contentResolver.getType(uri).orEmpty()
         val mimeLooksVideo = mimeType.startsWith("video")
 
-        if (DocumentsContract.isDocumentUri(this, uri) && uri.authority == "com.android.providers.media.documents") {
+        if (DocumentsContract.isDocumentUri(this, uri) && uri.authority == MEDIA_DOCUMENTS_AUTHORITY) {
             val parts = DocumentsContract.getDocumentId(uri).split(":")
             if (parts.size == 2) {
                 val type = parts[0]
