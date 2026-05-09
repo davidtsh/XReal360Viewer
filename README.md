@@ -6,7 +6,8 @@ A 360° image and video viewer for the **XREAL One** glasses, built with Kotlin,
 
 ## Download
 
-1.0.0 Namek : Only photos. Tap to open a new one. 
+1.0.0 Namek : Only photos. Tap to open a new one.
+
 1.1.0 Vegeta : Photos & Videos. Tap to open a new one. Slide up & down to change photos and videos in the same folder. Pinch to zoom. Remember same folder. Tap and hold to speed 5x a video.
 
 
