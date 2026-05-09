@@ -14,6 +14,7 @@ import android.view.View
 import android.view.ViewConfiguration
 import android.view.WindowManager
 import androidx.appcompat.app.AppCompatActivity
+import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.exoplayer.ExoPlayer
 import com.xreal360.viewer.databinding.ActivityViewerBinding
@@ -32,7 +33,8 @@ class ViewerActivity : AppCompatActivity() {
         private const val SWIPE_THRESHOLD_PX = 120f
         private const val MIN_ZOOM_FACTOR = 0.65f
         private const val MAX_ZOOM_FACTOR = 3f
-        private const val FAST_FORWARD_SPEED = 5f
+        private const val FAST_FORWARD_INTERVAL_MS = 250L
+        private const val FAST_FORWARD_EXTRA_MS = FAST_FORWARD_INTERVAL_MS * 4
     }
 
     private lateinit var binding: ActivityViewerBinding
@@ -52,6 +54,14 @@ class ViewerActivity : AppCompatActivity() {
     private var gestureWasPinch = false
     private val longPressHandler = Handler(Looper.getMainLooper())
     private val videoFastForwardRunnable = Runnable { startVideoFastForward() }
+    private val videoFastForwardTick = object : Runnable {
+        override fun run() {
+            fastForwardStep()
+            if (isFastForwarding) {
+                longPressHandler.postDelayed(this, FAST_FORWARD_INTERVAL_MS)
+            }
+        }
+    }
     private var isFastForwarding = false
     private var gestureWasFastForward = false
 
@@ -114,7 +124,7 @@ class ViewerActivity : AppCompatActivity() {
                     true
                 }
                 MotionEvent.ACTION_POINTER_DOWN -> {
-                    cancelVideoFastForward(resetPlaybackSpeed = true)
+                    cancelVideoFastForward()
                     if (event.pointerCount >= 2) {
                         pinchStartDistance = pointerDistance(event)
                         pinchStartZoomFactor = zoomFactor
@@ -128,7 +138,7 @@ class ViewerActivity : AppCompatActivity() {
                         val scale = pointerDistance(event) / pinchStartDistance
                         setZoomFactor(pinchStartZoomFactor * scale)
                     } else if (!isFastForwarding && hasMovedPastSwipeThreshold(event)) {
-                        cancelVideoFastForward(resetPlaybackSpeed = false)
+                        cancelVideoFastForward()
                     }
                     true
                 }
@@ -140,7 +150,7 @@ class ViewerActivity : AppCompatActivity() {
                 }
                 MotionEvent.ACTION_UP -> {
                     val wasFastForwarding = isFastForwarding || gestureWasFastForward
-                    cancelVideoFastForward(resetPlaybackSpeed = true)
+                    cancelVideoFastForward()
                     val dx = event.x - touchDownX
                     val dy = event.y - touchDownY
                     val isHorizontalSwipe = abs(dx) > SWIPE_THRESHOLD_PX && abs(dx) > abs(dy)
@@ -158,7 +168,7 @@ class ViewerActivity : AppCompatActivity() {
                     true
                 }
                 MotionEvent.ACTION_CANCEL -> {
-                    cancelVideoFastForward(resetPlaybackSpeed = true)
+                    cancelVideoFastForward()
                     isPinching = false
                     gestureWasPinch = false
                     gestureWasFastForward = false
@@ -175,7 +185,7 @@ class ViewerActivity : AppCompatActivity() {
 
     private fun showMedia(index: Int) {
         if (mediaUris.isEmpty()) return
-        cancelVideoFastForward(resetPlaybackSpeed = true)
+        cancelVideoFastForward()
         currentIndex = wrapIndex(index)
         val uri = mediaUris[currentIndex]
 
@@ -215,7 +225,7 @@ class ViewerActivity : AppCompatActivity() {
     }
 
     private fun scheduleVideoFastForward() {
-        cancelVideoFastForward(resetPlaybackSpeed = false)
+        cancelVideoFastForward()
         if (!isCurrentVideo()) return
         longPressHandler.postDelayed(
             videoFastForwardRunnable,
@@ -229,15 +239,26 @@ class ViewerActivity : AppCompatActivity() {
         isFastForwarding = true
         gestureWasFastForward = true
         player.playWhenReady = true
-        player.setPlaybackSpeed(FAST_FORWARD_SPEED)
+        longPressHandler.post(videoFastForwardTick)
     }
 
-    private fun cancelVideoFastForward(resetPlaybackSpeed: Boolean) {
+    private fun cancelVideoFastForward() {
         longPressHandler.removeCallbacks(videoFastForwardRunnable)
-        if (resetPlaybackSpeed && isFastForwarding) {
-            exoPlayer?.setPlaybackSpeed(1f)
-        }
+        longPressHandler.removeCallbacks(videoFastForwardTick)
         isFastForwarding = false
+    }
+
+    private fun fastForwardStep() {
+        val player = exoPlayer ?: return
+        if (!isCurrentVideo()) return
+        val duration = player.duration
+        val currentPosition = player.currentPosition
+        val targetPosition = if (duration != C.TIME_UNSET && duration > 0L) {
+            minOf(currentPosition + FAST_FORWARD_EXTRA_MS, duration)
+        } else {
+            currentPosition + FAST_FORWARD_EXTRA_MS
+        }
+        player.seekTo(targetPosition)
     }
 
     private fun openPicker() {
@@ -286,7 +307,6 @@ class ViewerActivity : AppCompatActivity() {
             setMediaItem(MediaItem.fromUri(uri))
             setVideoSurface(surface)
             repeatMode = ExoPlayer.REPEAT_MODE_ONE
-            setPlaybackSpeed(1f)
             prepare()
             playWhenReady = true
         }
@@ -301,7 +321,7 @@ class ViewerActivity : AppCompatActivity() {
 
     override fun onPause() {
         super.onPause()
-        cancelVideoFastForward(resetPlaybackSpeed = true)
+        cancelVideoFastForward()
         binding.glSurfaceView.onPause()
         headTracker.stop()
         exoPlayer?.playWhenReady = false
@@ -313,7 +333,7 @@ class ViewerActivity : AppCompatActivity() {
     }
 
     private fun releaseVideo() {
-        cancelVideoFastForward(resetPlaybackSpeed = true)
+        cancelVideoFastForward()
         exoPlayer?.release()
         exoPlayer = null
         videoSurface?.release()
