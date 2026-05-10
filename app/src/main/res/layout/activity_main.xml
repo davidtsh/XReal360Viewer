@@ -43,7 +43,7 @@
         android:layout_marginEnd="32dp"
         android:gravity="center"
         android:lineSpacingExtra="8dp"
-        android:text="Tap to select new image or video.&#10;Slide up &amp; down to change image or video.&#10;Pinch to zoom.&#10;Tap &amp; hold to speed x5 a video."
+        android:text="Tap to select new image or video.&#10;Swipe to change image or video.&#10;Pinch to zoom.&#10;Tap &amp; hold to speed x5 a video."
         android:textColor="#9A9A9A"
         android:textSize="10sp"
         app:layout_constraintEnd_toEndOf="parent"
