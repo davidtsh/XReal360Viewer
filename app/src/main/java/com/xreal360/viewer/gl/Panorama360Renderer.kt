@@ -95,15 +95,14 @@ class Panorama360Renderer(private val context: Context) : GLSurfaceView.Renderer
         Matrix.multiplyMM(mvpMatrix, 0, projectionMatrix, 0, rotationMatrix, 0)
         GLES20.glUniformMatrix4fv(shader.uniform("uMVPMatrix"), 1, false, mvpMatrix, 0)
 
-        if (useVideoTexture) {
-            GLES20.glActiveTexture(GLES20.GL_TEXTURE1)
-            GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, textures[1])
-            GLES20.glUniform1i(shader.uniform("uVideoTexture"), 1)
-        } else {
-            GLES20.glActiveTexture(GLES20.GL_TEXTURE0)
-            GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textures[0])
-            GLES20.glUniform1i(shader.uniform("uImageTexture"), 0)
-        }
+        GLES20.glActiveTexture(GLES20.GL_TEXTURE0)
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textures[0])
+        GLES20.glUniform1i(shader.uniform("uImageTexture"), 0)
+
+        GLES20.glActiveTexture(GLES20.GL_TEXTURE1)
+        GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, textures[1])
+        GLES20.glUniform1i(shader.uniform("uVideoTexture"), 1)
+
         GLES20.glUniform1i(shader.uniform("uUseVideo"), if (useVideoTexture) 1 else 0)
 
         val posLoc = shader.attrib("aPosition")

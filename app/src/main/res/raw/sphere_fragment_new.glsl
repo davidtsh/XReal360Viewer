@@ -6,9 +6,7 @@ uniform int uUseVideo;
 varying vec2 vTexCoord;
 
 void main() {
-    if (uUseVideo == 1) {
-        gl_FragColor = texture2D(uVideoTexture, vTexCoord);
-    } else {
-        gl_FragColor = texture2D(uImageTexture, vTexCoord);
-    }
+    vec4 imageColor = texture2D(uImageTexture, vTexCoord);
+    vec4 videoColor = texture2D(uVideoTexture, vTexCoord);
+    gl_FragColor = mix(imageColor, videoColor, float(uUseVideo));
 }
