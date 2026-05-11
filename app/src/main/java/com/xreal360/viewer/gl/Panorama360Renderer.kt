@@ -159,6 +159,7 @@ class Panorama360Renderer(private val context: Context) : GLSurfaceView.Renderer
         fieldOfViewDegrees = DEFAULT_FIELD_OF_VIEW_DEGREES / clampedZoom
         updateProjectionMatrix()
     }
+
     private fun ensurePowerOfTwo(bmp: Bitmap): Bitmap {
         fun nextPow2(n: Int): Int {
             var p = 1
@@ -170,6 +171,7 @@ class Panorama360Renderer(private val context: Context) : GLSurfaceView.Renderer
         if (w == bmp.width && h == bmp.height) return bmp
         return Bitmap.createScaledBitmap(bmp, w, h, true).also { bmp.recycle() }
     }
+
     private fun updateProjectionMatrix() {
         Matrix.perspectiveM(projectionMatrix, 0, fieldOfViewDegrees, viewportRatio, 0.1f, 200f)
     }
@@ -199,17 +201,7 @@ class Panorama360Renderer(private val context: Context) : GLSurfaceView.Renderer
             }
         }
     }
-    private fun ensurePowerOfTwo(bmp: Bitmap): Bitmap {
-        fun nextPow2(n: Int): Int {
-            var p = 1
-            while (p < n) p = p shl 1
-            return p
-        }
-        val w = nextPow2(bmp.width)
-        val h = nextPow2(bmp.height)
-        if (w == bmp.width && h == bmp.height) return bmp
-        return Bitmap.createScaledBitmap(bmp, w, h, true).also { bmp.recycle() }
-    }
+
     companion object {
         private const val DEFAULT_FIELD_OF_VIEW_DEGREES = 90f
         private const val MIN_ZOOM_FACTOR = 0.65f
