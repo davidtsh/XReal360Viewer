@@ -10,7 +10,13 @@ A 360° image and video viewer for the **XREAL One** glasses, built with Kotlin,
 
 [1.1.0 Vegeta](https://github.com/davidtsh/XReal360Viewer/blob/Vegeta/releases/xreal_360_viewer_vegeta_1_1_0.apk) : Photos & Videos. Tap to open a new one. Slide up & down to change photos and videos in the same folder. Pinch to zoom. Remember same folder. Tap and hold to speed 5x a video.
 
-<img width="1080" height="1494" alt="49185" src="https://github.com/user-attachments/assets/ac2025e9-7ea8-407a-8834-a988bac78581" />
+<img width="400" alt="howtodownload" src="https://github.com/user-attachments/assets/ac2025e9-7ea8-407a-8834-a988bac78581" />
+
+
+<video src="https://github.com/user-attachments/assets/b91f263b-6376-4ee5-a4b0-ebf3ea5d754b" controls autoplay loop muted></video>
+
+
+
 
 [AQMlB_dUZwMLxrN41SFSc9K01yBjF27dUqL36RVcs_cHivyk7rzqiFKc8CN2XpfMlmP2gS4fFu4pkrJz9KHLC5GuWKDjGKzxseUE7-o.mp4](../../Desktop/AQMlB_dUZwMLxrN41SFSc9K01yBjF27dUqL36RVcs_cHivyk7rzqiFKc8CN2XpfMlmP2gS4fFu4pkrJz9KHLC5GuWKDjGKzxseUE7-o.mp4)
 
