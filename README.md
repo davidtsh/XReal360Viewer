@@ -12,6 +12,7 @@ A 360° image and video viewer for the **XREAL One** glasses, built with Kotlin,
 
 <img width="1080" height="1494" alt="49185" src="https://github.com/user-attachments/assets/ac2025e9-7ea8-407a-8834-a988bac78581" />
 
+[AQMlB_dUZwMLxrN41SFSc9K01yBjF27dUqL36RVcs_cHivyk7rzqiFKc8CN2XpfMlmP2gS4fFu4pkrJz9KHLC5GuWKDjGKzxseUE7-o.mp4](../../Desktop/AQMlB_dUZwMLxrN41SFSc9K01yBjF27dUqL36RVcs_cHivyk7rzqiFKc8CN2XpfMlmP2gS4fFu4pkrJz9KHLC5GuWKDjGKzxseUE7-o.mp4)
 
 ## Features
 - 📷 Load any equirectangular 360° **image** (JPG/PNG) from your device gallery
