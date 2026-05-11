@@ -68,12 +68,10 @@ class Panorama360Renderer(private val context: Context) : GLSurfaceView.Renderer
         pendingBitmap?.let { bmp ->
             GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textures[0])
             val maxSize = 4096
-            val scaled = ensurePowerOfTwo(
-                if (bmp.width > maxSize || bmp.height > maxSize) {
-                    val scale = maxSize.toFloat() / maxOf(bmp.width, bmp.height)
-                    Bitmap.createScaledBitmap(bmp, (bmp.width * scale).toInt(), (bmp.height * scale).toInt(), true)
-                } else bmp
-            )
+            val scaled = if (bmp.width > maxSize || bmp.height > maxSize) {
+                val scale = maxSize.toFloat() / maxOf(bmp.width, bmp.height)
+                Bitmap.createScaledBitmap(bmp, (bmp.width * scale).toInt(), (bmp.height * scale).toInt(), true)
+            } else bmp
             android.opengl.GLUtils.texImage2D(GLES20.GL_TEXTURE_2D, 0, scaled, 0)
             if (scaled !== bmp) scaled.recycle()
             bmp.recycle()
@@ -158,18 +156,6 @@ class Panorama360Renderer(private val context: Context) : GLSurfaceView.Renderer
         val clampedZoom = zoomFactor.coerceIn(MIN_ZOOM_FACTOR, MAX_ZOOM_FACTOR)
         fieldOfViewDegrees = DEFAULT_FIELD_OF_VIEW_DEGREES / clampedZoom
         updateProjectionMatrix()
-    }
-
-    private fun ensurePowerOfTwo(bmp: Bitmap): Bitmap {
-        fun nextPow2(n: Int): Int {
-            var p = 1
-            while (p < n) p = p shl 1
-            return p
-        }
-        val w = nextPow2(bmp.width)
-        val h = nextPow2(bmp.height)
-        if (w == bmp.width && h == bmp.height) return bmp
-        return Bitmap.createScaledBitmap(bmp, w, h, true).also { bmp.recycle() }
     }
 
     private fun updateProjectionMatrix() {
