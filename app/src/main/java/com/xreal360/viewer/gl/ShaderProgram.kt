@@ -14,6 +14,13 @@ class ShaderProgram(vertexSrc: String, fragmentSrc: String) {
             GLES20.glAttachShader(it, vs)
             GLES20.glAttachShader(it, fs)
             GLES20.glLinkProgram(it)
+            val status = IntArray(1)
+            GLES20.glGetProgramiv(it, GLES20.GL_LINK_STATUS, status, 0)
+            if (status[0] == 0) {
+                Log.e("ShaderProgram", "Link error: ${GLES20.glGetProgramInfoLog(it)}")
+            } else {
+                Log.d("ShaderProgram", "Program linked OK")
+            }
         }
     }
 
@@ -24,7 +31,9 @@ class ShaderProgram(vertexSrc: String, fragmentSrc: String) {
             val status = IntArray(1)
             GLES20.glGetShaderiv(shader, GLES20.GL_COMPILE_STATUS, status, 0)
             if (status[0] == 0) {
-                Log.e("ShaderProgram", GLES20.glGetShaderInfoLog(shader))
+                Log.e("ShaderProgram", "Compile error (${if (type == GLES20.GL_VERTEX_SHADER) "VERT" else "FRAG"}): ${GLES20.glGetShaderInfoLog(shader)}")
+            } else {
+                Log.d("ShaderProgram", "Shader compiled OK (${if (type == GLES20.GL_VERTEX_SHADER) "VERT" else "FRAG"})")
             }
         }
     }
