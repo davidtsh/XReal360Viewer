@@ -265,7 +265,9 @@ class ViewerActivity : AppCompatActivity() {
         val yawMatrix = FloatArray(16)
         Matrix.setRotateM(yawMatrix, 0, yawDegrees, 0f, 1f, 0f)
         val result = FloatArray(16)
-        Matrix.multiplyMM(result, 0, yawMatrix, 0, headMatrix, 0)
+        // Multiply headMatrix × yawMatrix so yaw is applied in world space,
+        // keeping pitch and roll unaffected after the rotation.
+        Matrix.multiplyMM(result, 0, headMatrix, 0, yawMatrix, 0)
         return result
     }
 
