@@ -2,9 +2,15 @@ package com.xreal360.viewer.ui
 
 import android.graphics.BitmapFactory
 import android.graphics.SurfaceTexture
+import android.content.Context
 import android.content.Intent
+import android.hardware.Sensor
+import android.hardware.SensorEvent
+import android.hardware.SensorEventListener
+import android.hardware.SensorManager
 import android.net.Uri
 import android.opengl.GLSurfaceView
+import android.opengl.Matrix
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -35,6 +41,14 @@ class ViewerActivity : AppCompatActivity() {
         private const val MAX_ZOOM_FACTOR = 3f
         private const val FAST_FORWARD_INTERVAL_MS = 250L
         private const val FAST_FORWARD_EXTRA_MS = FAST_FORWARD_INTERVAL_MS * 4
+
+        // Shake detection
+        private const val SHAKE_THRESHOLD_G = 2.5f
+        private const val SHAKE_COOLDOWN_MS = 1000L
+
+        // Yaw animation
+        private const val YAW_ANIMATION_DURATION_MS = 600L
+        private const val YAW_TARGET_DEGREES = 180f
     }
 
     private lateinit var binding: ActivityViewerBinding
@@ -66,6 +80,35 @@ class ViewerActivity : AppCompatActivity() {
     private var isFastForwarding = false
     private var gestureWasFastForward = false
 
+    // Shake detection
+    private lateinit var sensorManager: SensorManager
+    private var accelerometer: Sensor? = null
+    private var lastShakeTimeMs = 0L
+
+    // Yaw animation state (accessed only from GL thread)
+    @Volatile private var isYawAnimating = false
+    private var yawAnimationStartMs = 0L
+    private var yawAnimationStartDegrees = 0f
+    private var accumulatedYawDegrees = 0f
+
+    private val shakeListener = object : SensorEventListener {
+        override fun onSensorChanged(event: SensorEvent) {
+            if (event.sensor.type != Sensor.TYPE_ACCELEROMETER) return
+            val x = event.values[0]
+            val y = event.values[1]
+            val z = event.values[2]
+            val gForce = sqrt(x * x + y * y + z * z) / SensorManager.GRAVITY_EARTH
+            if (gForce > SHAKE_THRESHOLD_G) {
+                val now = System.currentTimeMillis()
+                if (now - lastShakeTimeMs > SHAKE_COOLDOWN_MS) {
+                    lastShakeTimeMs = now
+                    triggerYawAnimation()
+                }
+            }
+        }
+        override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityViewerBinding.inflate(layoutInflater)
@@ -74,10 +117,10 @@ class ViewerActivity : AppCompatActivity() {
         // Full-screen immersive
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         window.decorView.systemUiVisibility = (
-            View.SYSTEM_UI_FLAG_FULLSCREEN or
-            View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or
-            View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-        )
+                View.SYSTEM_UI_FLAG_FULLSCREEN or
+                        View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or
+                        View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                )
 
         val uriString = intent.getStringExtra(EXTRA_URI) ?: return finish()
         val fallbackUri = Uri.parse(uriString)
@@ -86,6 +129,10 @@ class ViewerActivity : AppCompatActivity() {
             .orEmpty()
         mediaUris = playlist.ifEmpty { listOf(fallbackUri) }
         currentIndex = intent.getIntExtra(EXTRA_INDEX, 0).coerceIn(0, mediaUris.lastIndex)
+
+        // Shake / accelerometer
+        sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
+        accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
 
         // Setup GL
         renderer = Panorama360Renderer(this).apply {
@@ -108,7 +155,12 @@ class ViewerActivity : AppCompatActivity() {
         headTracker = HeadTracker(this).apply {
             listener = object : HeadTracker.Listener {
                 override fun onRotationMatrix(matrix: FloatArray) {
-                    renderer.setRotationMatrix(matrix)
+                    val finalMatrix = if (isYawAnimating) {
+                        applyYawAnimation(matrix)
+                    } else {
+                        applyStaticYaw(matrix)
+                    }
+                    renderer.setRotationMatrix(finalMatrix)
                 }
             }
         }
@@ -184,6 +236,42 @@ class ViewerActivity : AppCompatActivity() {
         }
     }
 
+    // Called from shake listener on sensor thread — safe, only sets volatiles
+    private fun triggerYawAnimation() {
+        yawAnimationStartDegrees = accumulatedYawDegrees
+        yawAnimationStartMs = System.currentTimeMillis()
+        isYawAnimating = true
+    }
+
+    // Called from HeadTracker callback — applies in-progress yaw animation on top of head rotation
+    private fun applyYawAnimation(headMatrix: FloatArray): FloatArray {
+        val elapsed = System.currentTimeMillis() - yawAnimationStartMs
+        val t = (elapsed.toFloat() / YAW_ANIMATION_DURATION_MS).coerceIn(0f, 1f)
+        val eased = easeInOut(t)
+        accumulatedYawDegrees = yawAnimationStartDegrees + eased * YAW_TARGET_DEGREES
+        if (t >= 1f) {
+            accumulatedYawDegrees = yawAnimationStartDegrees + YAW_TARGET_DEGREES
+            isYawAnimating = false
+        }
+        return buildYawedMatrix(headMatrix, accumulatedYawDegrees)
+    }
+
+    // Called when no animation is running — just applies the current accumulated yaw
+    private fun applyStaticYaw(headMatrix: FloatArray): FloatArray {
+        return buildYawedMatrix(headMatrix, accumulatedYawDegrees)
+    }
+
+    private fun buildYawedMatrix(headMatrix: FloatArray, yawDegrees: Float): FloatArray {
+        val yawMatrix = FloatArray(16)
+        Matrix.setRotateM(yawMatrix, 0, yawDegrees, 0f, 1f, 0f)
+        val result = FloatArray(16)
+        Matrix.multiplyMM(result, 0, yawMatrix, 0, headMatrix, 0)
+        return result
+    }
+
+    // Smooth ease-in-out curve: 3t²-2t³
+    private fun easeInOut(t: Float): Float = t * t * (3f - 2f * t)
+
     private fun showMedia(index: Int) {
         if (mediaUris.isEmpty()) return
         cancelVideoFastForward()
@@ -208,8 +296,8 @@ class ViewerActivity : AppCompatActivity() {
                 runOnUiThread {
                     videoSurfaceTexture = surfaceTexture
                     val stillCurrent = mediaGeneration == targetGeneration &&
-                        currentIndex == targetIndex &&
-                        mediaUris.getOrNull(currentIndex) == uri
+                            currentIndex == targetIndex &&
+                            mediaUris.getOrNull(currentIndex) == uri
                     if (stillCurrent) {
                         setupVideo(uri, surfaceTexture)
                     }
@@ -249,7 +337,7 @@ class ViewerActivity : AppCompatActivity() {
 
     private fun hasMovedPastSwipeThreshold(event: MotionEvent): Boolean {
         return abs(event.x - touchDownX) > SWIPE_THRESHOLD_PX ||
-            abs(event.y - touchDownY) > SWIPE_THRESHOLD_PX
+                abs(event.y - touchDownY) > SWIPE_THRESHOLD_PX
     }
 
     private fun scheduleVideoFastForward() {
@@ -349,6 +437,9 @@ class ViewerActivity : AppCompatActivity() {
         binding.glSurfaceView.onResume()
         headTracker.start()
         exoPlayer?.playWhenReady = true
+        accelerometer?.let {
+            sensorManager.registerListener(shakeListener, it, SensorManager.SENSOR_DELAY_GAME)
+        }
     }
 
     override fun onPause() {
@@ -357,6 +448,7 @@ class ViewerActivity : AppCompatActivity() {
         binding.glSurfaceView.onPause()
         headTracker.stop()
         exoPlayer?.playWhenReady = false
+        sensorManager.unregisterListener(shakeListener)
     }
 
     override fun onDestroy() {
