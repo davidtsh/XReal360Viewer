@@ -16,6 +16,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import com.xreal360.viewer.R
 import com.xreal360.viewer.databinding.ActivityMainBinding
 import java.util.Locale
 
@@ -42,7 +43,7 @@ class MainActivity : AppCompatActivity() {
         ActivityResultContracts.RequestMultiplePermissions()
     ) { grants ->
         if (grants.values.all { it }) openGallery()
-        else Toast.makeText(this, "Storage permission required", Toast.LENGTH_LONG).show()
+        else Toast.makeText(this, R.string.storage_permission_required, Toast.LENGTH_LONG).show()
     }
 
     // Gallery picker with initial URI support
@@ -71,9 +72,9 @@ class MainActivity : AppCompatActivity() {
 
         try {
             val pInfo = packageManager.getPackageInfo(packageName, 0)
-            binding.tvVersion.text = "v${pInfo.versionName}"
+            binding.tvVersion.text = getString(R.string.version_format, pInfo.versionName)
         } catch (e: Exception) {
-            binding.tvVersion.text = "v1.1.0"
+            binding.tvVersion.setText(R.string.version_fallback)
         }
 
         binding.btnPickImage.setOnClickListener { checkPermissionsAndOpen() }

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">XREAL 360° Viewer</string>
+    <string name="open_360_file">Obre un fitxer 360º</string>
+    <string name="main_instructions_header">Accions amb una imatge o un vídeo seleccionat:</string>
+    <string name="main_instructions">Toca per seleccionar una imatge o un vídeo nou.\nFes lliscar per canviar la imatge o el vídeo.\nPinça per fer zoom.\nToca i mantén premut per accelerar un vídeo x5.\nSacseja per girar 180º.</string>
+    <string name="main_credit">fet amb vibe coding per davidtsh</string>
+    <string name="version_format">v%1$s</string>
+    <string name="version_fallback">v1.1.2</string>
+    <string name="storage_permission_required">Cal permís per accedir als fitxers</string>
+</resources>
