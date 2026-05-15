@@ -76,27 +76,32 @@
 
         <TextView
             style="@style/MainInstructionLine"
-            android:text="@string/instruction_tap" />
+            android:text="@string/instruction_pinch" />
+
+        <TextView
+            style="@style/MainInstructionLine"
+            android:layout_marginTop="11dp"
+            android:text="@string/instruction_shake" />
 
         <TextView
             style="@style/MainInstructionLine"
             android:layout_marginTop="11dp"
             android:text="@string/instruction_swipe" />
 
-        <TextView
-            style="@style/MainInstructionLine"
-            android:layout_marginTop="11dp"
-            android:text="@string/instruction_pinch" />
+
 
         <TextView
             style="@style/MainInstructionLine"
             android:layout_marginTop="11dp"
             android:text="@string/instruction_hold" />
 
+
+
         <TextView
             style="@style/MainInstructionLine"
             android:layout_marginTop="11dp"
-            android:text="@string/instruction_shake" />
+            android:text="@string/instruction_tap" />
+
 
     </LinearLayout>
 

@@ -3,8 +3,8 @@
     <string name="app_name">XREAL 360° Viewer</string>
     <string name="open_360_file">OBRE FITXER 360°</string>
     <string name="main_instructions_header">INTERACCIONS</string>
-    <string name="main_instructions">TOCA PER OBRIR UN FITXER NOU\nLLISCA PER CANVIAR FITXER DE LA MATEIXA CARPETA\nPINÇA PER FER ZOOM\nMANTÉN PREMUT PER ACCELERAR VÍDEO ×5\nSACSEJA PER GIRAR 180°</string>
-    <string name="instruction_tap"><b>TOCA</b> PER OBRIR UN FITXER NOU</string>
+    <string name="main_instructions">TOCA PER TANCAR\nLLISCA PER CANVIAR FITXER DE LA MATEIXA CARPETA\nPINÇA PER FER ZOOM\nMANTÉN PREMUT PER ACCELERAR VÍDEO ×5\nSACSEJA PER GIRAR 180°</string>
+    <string name="instruction_tap"><b>TOCA</b> PER TANCAR</string>
     <string name="instruction_swipe"><b>LLISCA</b> PER CANVIAR FITXER DE LA MATEIXA CARPETA</string>
     <string name="instruction_pinch"><b>PINÇA</b> PER FER ZOOM</string>
     <string name="instruction_hold"><b>MANTÉN PREMUT</b> PER ACCELERAR VÍDEO ×5</string>

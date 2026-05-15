@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:bottom="7dp"
+        android:drawable="@drawable/logo_360"
+        android:left="7dp"
+        android:right="7dp"
+        android:top="7dp" />
+</layer-list>
