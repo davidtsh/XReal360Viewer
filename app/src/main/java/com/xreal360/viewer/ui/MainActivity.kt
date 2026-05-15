@@ -13,6 +13,7 @@ import android.os.Build
 import android.os.Bundle
 import android.provider.DocumentsContract
 import android.provider.MediaStore
+import android.provider.OpenableColumns
 import android.widget.Toast
 import android.view.animation.AccelerateDecelerateInterpolator
 import androidx.activity.result.contract.ActivityResultContract
@@ -29,14 +30,13 @@ class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private var buttonGlowAnimator: AnimatorSet? = null
 
-    // Custom contract to support initial URI
-    private class OpenDocumentWithInitialUri : ActivityResultContract<Pair<Array<String>, Uri?>, Uri?>() {
-        override fun createIntent(context: Context, input: Pair<Array<String>, Uri?>): Intent {
+    // Opens a regular file view so images and videos can appear together in mixed folders.
+    private class OpenDocumentWithInitialUri : ActivityResultContract<Uri?, Uri?>() {
+        override fun createIntent(context: Context, input: Uri?): Intent {
             return Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
                 addCategory(Intent.CATEGORY_OPENABLE)
                 type = "*/*"
-                putExtra(Intent.EXTRA_MIME_TYPES, input.first)
-                input.second?.let { putExtra(DocumentsContract.EXTRA_INITIAL_URI, it) }
+                input?.let { putExtra(DocumentsContract.EXTRA_INITIAL_URI, it) }
             }
         }
         override fun parseResult(resultCode: Int, intent: Intent?): Uri? =
@@ -54,6 +54,10 @@ class MainActivity : AppCompatActivity() {
     // Gallery picker with initial URI support
     private val galleryLauncher = registerForActivityResult(OpenDocumentWithInitialUri()) { uri: Uri? ->
         uri?.let {
+            if (!isSupportedMediaFile(it)) {
+                Toast.makeText(this, R.string.unsupported_media_file, Toast.LENGTH_LONG).show()
+                return@let
+            }
             takeReadPermission(it)
             saveLastSelection(it)
             openViewer(it)
@@ -66,7 +70,11 @@ class MainActivity : AppCompatActivity() {
         private const val PREFS_NAME = "prefs"
         private const val KEY_LAST_URI = "last_uri"
         private const val KEY_LAST_BUCKET_ID = "last_bucket_id"
-        private val SUPPORTED_MIME_TYPES = arrayOf("image/*", "video/*")
+        private const val EXTERNAL_STORAGE_DOCUMENTS_AUTHORITY = "com.android.externalstorage.documents"
+        private val SUPPORTED_EXTENSIONS = setOf(
+            "jpg", "jpeg", "png", "webp", "heic", "heif",
+            "mp4", "m4v", "mov", "mkv", "webm"
+        )
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -142,7 +150,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun openGallery() {
-        galleryLauncher.launch(SUPPORTED_MIME_TYPES to getLastFolderUri())
+        galleryLauncher.launch(getLastFolderUri())
     }
 
     private fun takeReadPermission(uri: Uri) {
@@ -211,6 +219,19 @@ class MainActivity : AppCompatActivity() {
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
         startActivity(intent)
+    }
+
+    private fun isSupportedMediaFile(uri: Uri): Boolean {
+        val mimeType = contentResolver.getType(uri).orEmpty()
+        if (mimeType.startsWith("image/") || mimeType.startsWith("video/")) {
+            return true
+        }
+
+        val extension = queryDisplayName(uri)
+            ?.substringAfterLast('.', missingDelimiterValue = "")
+            ?.lowercase(Locale.getDefault())
+            .orEmpty()
+        return extension in SUPPORTED_EXTENSIONS
     }
 
     private data class MediaPlaylist(
@@ -304,6 +325,15 @@ class MainActivity : AppCompatActivity() {
         val mimeType = contentResolver.getType(uri).orEmpty()
         val mimeLooksVideo = mimeType.startsWith("video")
 
+        if (DocumentsContract.isDocumentUri(this, uri) && uri.authority == EXTERNAL_STORAGE_DOCUMENTS_AUTHORITY) {
+            val documentPath = DocumentsContract.getDocumentId(uri).substringAfter(':', missingDelimiterValue = "")
+            val displayName = documentPath.substringAfterLast('/', missingDelimiterValue = documentPath)
+            val relativePath = documentPath.substringBeforeLast('/', missingDelimiterValue = "")
+                .takeIf { it.isNotEmpty() }
+                ?.let { "$it/" }
+            return resolveMediaStoreItemByDisplayName(displayName, relativePath, preferVideo = mimeLooksVideo)
+        }
+
         if (DocumentsContract.isDocumentUri(this, uri) && uri.authority == MEDIA_DOCUMENTS_AUTHORITY) {
             val parts = DocumentsContract.getDocumentId(uri).split(":")
             if (parts.size == 2) {
@@ -325,6 +355,67 @@ class MainActivity : AppCompatActivity() {
         }
 
         return null
+    }
+
+    private fun resolveMediaStoreItemByDisplayName(
+        displayName: String,
+        relativePath: String?,
+        preferVideo: Boolean
+    ): MediaStoreItem? {
+        if (displayName.isBlank()) return null
+        val collections = if (preferVideo) {
+            listOf(
+                MediaStore.Video.Media.EXTERNAL_CONTENT_URI to true,
+                MediaStore.Images.Media.EXTERNAL_CONTENT_URI to false
+            )
+        } else {
+            listOf(
+                MediaStore.Images.Media.EXTERNAL_CONTENT_URI to false,
+                MediaStore.Video.Media.EXTERNAL_CONTENT_URI to true
+            )
+        }
+
+        return collections.firstNotNullOfOrNull { (collection, isVideo) ->
+            queryMediaStoreItem(collection, displayName, relativePath, isVideo)
+        }
+    }
+
+    private fun queryMediaStoreItem(
+        collection: Uri,
+        displayName: String,
+        relativePath: String?,
+        isVideo: Boolean
+    ): MediaStoreItem? {
+        val idColumn = MediaStore.MediaColumns._ID
+        val displayNameColumn = MediaStore.MediaColumns.DISPLAY_NAME
+        val projection = arrayOf(idColumn)
+        val selection: String
+        val args: Array<String>
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && relativePath != null) {
+            selection = "$displayNameColumn = ? AND ${MediaStore.MediaColumns.RELATIVE_PATH} = ?"
+            args = arrayOf(displayName, relativePath)
+        } else {
+            selection = "$displayNameColumn = ?"
+            args = arrayOf(displayName)
+        }
+
+        contentResolver.query(collection, projection, selection, args, null)?.use { cursor ->
+            if (cursor.moveToFirst()) {
+                val id = cursor.getLong(cursor.getColumnIndexOrThrow(idColumn))
+                return MediaStoreItem(ContentUris.withAppendedId(collection, id), id, isVideo)
+            }
+        }
+        return null
+    }
+
+    private fun queryDisplayName(uri: Uri): String? {
+        contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
+            if (cursor.moveToFirst()) {
+                return cursor.getString(cursor.getColumnIndexOrThrow(OpenableColumns.DISPLAY_NAME))
+            }
+        }
+        return uri.lastPathSegment
     }
 
     private fun queryBucketId(uri: Uri, isVideo: Boolean): String? {

@@ -13,4 +13,5 @@
     <string name="version_format">v.%1$s</string>
     <string name="version_fallback">v.1.1.2</string>
     <string name="storage_permission_required">Cal permís per accedir als fitxers</string>
+    <string name="unsupported_media_file">Selecciona un fitxer d\'imatge o vídeo</string>
 </resources>
