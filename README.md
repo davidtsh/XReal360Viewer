@@ -17,7 +17,7 @@ How to download:
 <img width="400" alt="howtodownload" src="https://github.com/user-attachments/assets/ac2025e9-7ea8-407a-8834-a988bac78581" />
 
 
-<video src="https://github.com/user-attachments/assets/b91f263b-6376-4ee5-a4b0-ebf3ea5d754b" controls autoplay loop muted></video>
+<video src="https://github.com/user-attachments/assets/0976bb51-27f5-4b62-a7ee-926c3883923a" controls autoplay loop muted></video>
 
 
 ## Features
