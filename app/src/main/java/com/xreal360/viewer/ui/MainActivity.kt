@@ -1,6 +1,9 @@
 package com.xreal360.viewer.ui
 
 import android.Manifest
+import android.animation.AnimatorSet
+import android.animation.ObjectAnimator
+import android.animation.ValueAnimator
 import android.content.ContentUris
 import android.content.Context
 import android.content.Intent
@@ -11,6 +14,7 @@ import android.os.Bundle
 import android.provider.DocumentsContract
 import android.provider.MediaStore
 import android.widget.Toast
+import android.view.animation.AccelerateDecelerateInterpolator
 import androidx.activity.result.contract.ActivityResultContract
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
@@ -23,6 +27,7 @@ import java.util.Locale
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
+    private var buttonGlowAnimator: AnimatorSet? = null
 
     // Custom contract to support initial URI
     private class OpenDocumentWithInitialUri : ActivityResultContract<Pair<Array<String>, Uri?>, Uri?>() {
@@ -82,6 +87,40 @@ class MainActivity : AppCompatActivity() {
         if (intent.getBooleanExtra(EXTRA_AUTO_OPEN, false)) {
             checkPermissionsAndOpen()
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        startButtonGlowAnimation()
+    }
+
+    override fun onPause() {
+        stopButtonGlowAnimation()
+        super.onPause()
+    }
+
+    private fun startButtonGlowAnimation() {
+        if (buttonGlowAnimator?.isStarted == true) return
+
+        val alpha = ObjectAnimator.ofFloat(binding.btnPickImageGlow, "alpha", 0.18f, 0.62f)
+        val scaleX = ObjectAnimator.ofFloat(binding.btnPickImageGlow, "scaleX", 0.98f, 1.08f)
+        val scaleY = ObjectAnimator.ofFloat(binding.btnPickImageGlow, "scaleY", 0.96f, 1.12f)
+
+        buttonGlowAnimator = AnimatorSet().apply {
+            playTogether(alpha, scaleX, scaleY)
+            duration = 1800L
+            interpolator = AccelerateDecelerateInterpolator()
+            childAnimations.forEach { animator ->
+                (animator as? ValueAnimator)?.repeatCount = ValueAnimator.INFINITE
+                (animator as? ValueAnimator)?.repeatMode = ValueAnimator.REVERSE
+            }
+            start()
+        }
+    }
+
+    private fun stopButtonGlowAnimation() {
+        buttonGlowAnimator?.cancel()
+        buttonGlowAnimator = null
     }
 
     private fun checkPermissionsAndOpen() {

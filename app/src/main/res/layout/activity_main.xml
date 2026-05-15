@@ -38,6 +38,19 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/btnPickImage" />
 
+    <View
+        android:id="@+id/btnPickImageGlow"
+        android:layout_width="278dp"
+        android:layout_height="73dp"
+        android:layout_marginTop="300dp"
+        android:alpha="0.25"
+        android:background="@drawable/bg_open_file_button_glow"
+        android:elevation="1dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.503"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
     <androidx.appcompat.widget.AppCompatButton
         android:id="@+id/btnPickImage"
         android:layout_width="254dp"
