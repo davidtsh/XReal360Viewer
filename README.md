@@ -10,7 +10,7 @@ A 360° image and video viewer for the **XREAL One** glasses, built with Kotlin,
 
 1.1.0  Photos & Videos. Tap to open a new one. Slide up & down to change photos and videos in the same folder. Pinch to zoom. Remember same folder. Tap and hold to speed 5x a video.
 
-1.1.1 Shake to rotate 180º. Català.
+1.1.2 Shake to rotate 180º. Català. New design.
 
 How to download:
 

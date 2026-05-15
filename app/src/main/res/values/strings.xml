@@ -1,11 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">XREAL 360° Viewer</string>
-    <string name="open_360_file">Open 360º file</string>
-    <string name="main_instructions_header">Actions when image or video is selected:</string>
-    <string name="main_instructions">Tap to select new image or video.\nSwipe to change image or video.\nPinch to zoom.\nTap &amp; hold to speed x5 a video.\nShake to rotate 180º.</string>
+    <string name="open_360_file">OPEN 360° FILE</string>
+    <string name="main_instructions_header">INTERACTIONS</string>
+    <string name="main_instructions">TAP TO OPEN A NEW FILE\nSWIPE TO CHANGE FILE IN THE SAME FOLDER\nPINCH TO ZOOM\nTAP &amp; HOLD TO SPEED VIDEO ×5\nSHAKE TO ROTATE 180°</string>
+    <string name="instruction_tap"><b>TAP</b> TO OPEN A NEW FILE</string>
+    <string name="instruction_swipe"><b>SWIPE</b> TO CHANGE FILE IN THE SAME FOLDER</string>
+    <string name="instruction_pinch"><b>PINCH</b> TO ZOOM</string>
+    <string name="instruction_hold"><b>TAP &amp; HOLD</b> TO SPEED VIDEO ×5</string>
+    <string name="instruction_shake"><b>SHAKE</b> TO ROTATE 180°</string>
     <string name="main_credit">vibe-coded by davidtsh</string>
-    <string name="version_format">v%1$s</string>
-    <string name="version_fallback">v1.1.1</string>
+    <string name="version_format">v.%1$s</string>
+    <string name="version_fallback">v.1.1.2</string>
     <string name="storage_permission_required">Storage permission required</string>
 </resources>

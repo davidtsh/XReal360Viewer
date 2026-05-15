@@ -2,95 +2,132 @@
 <androidx.constraintlayout.widget.ConstraintLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#0D0D0D">
+    android:background="#303030">
 
     <ImageView
         android:id="@+id/imgSphereLogo"
-        android:layout_width="140dp"
-        android:layout_height="140dp"
-        android:layout_marginBottom="4dp"
+        android:layout_width="170dp"
+        android:layout_height="170dp"
+        android:layout_marginTop="124dp"
         android:contentDescription="@string/app_name"
         android:scaleType="fitCenter"
-        android:src="@drawable/ic_launcher_foreground"
-        app:layout_constraintBottom_toTopOf="@id/btnPickImage"
+        android:src="@drawable/logo_360"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.498"
-        app:layout_constraintStart_toStartOf="parent" />
-
-    <Button
-        android:id="@+id/btnPickImage"
-        android:layout_width="220dp"
-        android:layout_height="56dp"
-        android:backgroundTint="#333333"
-        android:text="@string/open_360_file"
-        android:textSize="13sp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.502"
+        app:layout_constraintHorizontal_bias="0.497"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.44" />
-
-    <TextView
-        android:id="@+id/tvInstructions"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="32dp"
-        android:layout_marginTop="12dp"
-        android:layout_marginEnd="32dp"
-        android:gravity="center"
-        android:lineSpacingExtra="8dp"
-        android:text="@string/main_instructions"
-        android:textColor="#9A9A9A"
-        android:textSize="12sp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.0"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/tvInstructionsHeader" />
+        app:layout_constraintTop_toTopOf="parent" />
 
     <TextView
         android:id="@+id/tvInstructionsHeader"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="32dp"
-        android:layout_marginTop="28dp"
+        android:layout_marginTop="40dp"
         android:layout_marginEnd="32dp"
+        android:fontFamily="sans-serif-medium"
         android:gravity="center"
+        android:includeFontPadding="false"
         android:text="@string/main_instructions_header"
-        android:textColor="#9A9A9A"
-        android:textSize="14sp"
+        android:textColor="#C9C9C9"
+        android:textSize="12sp"
+        android:textStyle="bold"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/btnPickImage" />
 
-    <TextView
-        android:id="@+id/tvCredit"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="8dp"
-        android:letterSpacing="0.5"
-        android:text="@string/main_credit"
-        android:textColor="#777777"
-        android:textSize="10sp"
-        app:layout_constraintBottom_toTopOf="@id/tvVersion"
+    <androidx.appcompat.widget.AppCompatButton
+        android:id="@+id/btnPickImage"
+        android:layout_width="254dp"
+        android:layout_height="57dp"
+        android:layout_marginTop="308dp"
+        android:background="@drawable/bg_open_file_button"
+        android:elevation="4dp"
+        android:fontFamily="sans-serif"
+        android:includeFontPadding="false"
+        android:letterSpacing="0.24"
+        android:minWidth="0dp"
+        android:minHeight="0dp"
+        android:paddingStart="0dp"
+        android:paddingEnd="0dp"
+        android:text="@string/open_360_file"
+        android:textAllCaps="false"
+        android:textColor="#C9C9C9"
+        android:textSize="13sp"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
+        app:layout_constraintHorizontal_bias="0.503"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <LinearLayout
+        android:id="@+id/tvInstructions"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="32dp"
+        android:layout_marginTop="18dp"
+        android:layout_marginEnd="32dp"
+        android:orientation="vertical"
+        android:gravity="center"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tvInstructionsHeader">
+
+        <TextView
+            style="@style/MainInstructionLine"
+            android:text="@string/instruction_tap" />
+
+        <TextView
+            style="@style/MainInstructionLine"
+            android:layout_marginTop="11dp"
+            android:text="@string/instruction_swipe" />
+
+        <TextView
+            style="@style/MainInstructionLine"
+            android:layout_marginTop="11dp"
+            android:text="@string/instruction_pinch" />
+
+        <TextView
+            style="@style/MainInstructionLine"
+            android:layout_marginTop="11dp"
+            android:text="@string/instruction_hold" />
+
+        <TextView
+            style="@style/MainInstructionLine"
+            android:layout_marginTop="11dp"
+            android:text="@string/instruction_shake" />
+
+    </LinearLayout>
 
     <TextView
         android:id="@+id/tvVersion"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="64dp"
+        android:layout_marginBottom="60dp"
+        android:fontFamily="sans-serif"
+        android:includeFontPadding="false"
         android:text="@string/version_fallback"
-        android:textColor="#444444"
+        android:textColor="#A1A1A1"
         android:textSize="9sp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.501"
+        app:layout_constraintHorizontal_bias="0.498"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <TextView
+        android:id="@+id/tvCredit"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="24dp"
+        android:fontFamily="sans-serif"
+        android:includeFontPadding="false"
+        android:letterSpacing="0.45"
+        android:text="@string/main_credit"
+        android:textColor="#A1A1A1"
+        android:textSize="10sp"
+        app:layout_constraintBottom_toTopOf="@id/tvVersion"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

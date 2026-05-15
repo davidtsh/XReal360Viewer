@@ -1,11 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">XREAL 360° Viewer</string>
-    <string name="open_360_file">Obre un fitxer 360º</string>
-    <string name="main_instructions_header">Accions amb una imatge o un vídeo seleccionat:</string>
-    <string name="main_instructions">Toca per seleccionar una imatge o un vídeo nou.\nFes lliscar per canviar la imatge o el vídeo.\nPinça per fer zoom.\nToca i mantén premut per accelerar un vídeo x5.\nSacseja per girar 180º.</string>
+    <string name="open_360_file">OBRE FITXER 360°</string>
+    <string name="main_instructions_header">INTERACCIONS</string>
+    <string name="main_instructions">TOCA PER OBRIR UN FITXER NOU\nLLISCA PER CANVIAR FITXER DE LA MATEIXA CARPETA\nPINÇA PER FER ZOOM\nMANTÉN PREMUT PER ACCELERAR VÍDEO ×5\nSACSEJA PER GIRAR 180°</string>
+    <string name="instruction_tap"><b>TOCA</b> PER OBRIR UN FITXER NOU</string>
+    <string name="instruction_swipe"><b>LLISCA</b> PER CANVIAR FITXER DE LA MATEIXA CARPETA</string>
+    <string name="instruction_pinch"><b>PINÇA</b> PER FER ZOOM</string>
+    <string name="instruction_hold"><b>MANTÉN PREMUT</b> PER ACCELERAR VÍDEO ×5</string>
+    <string name="instruction_shake"><b>SACSEJA</b> PER GIRAR 180°</string>
     <string name="main_credit">fet amb vibe coding per davidtsh</string>
-    <string name="version_format">v%1$s</string>
-    <string name="version_fallback">v1.1.2</string>
+    <string name="version_format">v.%1$s</string>
+    <string name="version_fallback">v.1.1.2</string>
     <string name="storage_permission_required">Cal permís per accedir als fitxers</string>
 </resources>
