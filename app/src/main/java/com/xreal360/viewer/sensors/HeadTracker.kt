@@ -20,13 +20,27 @@ class HeadTracker(private val context: Context) {
     }
 
     var listener: Listener? = null
+        set(value) {
+            field = value
+            nrealAirTracker?.listener = value
+        }
 
     private var client: OneXrClient? = null
+    private var nrealAirTracker: NrealAirUsbTracker? = null
     private var collectJob: Job? = null
     private var startJob: Job? = null
     private val scope = CoroutineScope(Dispatchers.IO)
 
     fun start() {
+        if (NrealAirUsbTracker.isNrealAirAttached(context)) {
+            Log.d(TAG, "Nreal Air detected. Using direct USB head tracker.")
+            nrealAirTracker = NrealAirUsbTracker(context).apply {
+                listener = this@HeadTracker.listener
+                start()
+            }
+            return
+        }
+
         client = OneXrClient(context, OneXrEndpoint()).apply {
             setPoseDataMode(XrPoseDataMode.SMOOTH_IMU)
         }
@@ -82,6 +96,8 @@ class HeadTracker(private val context: Context) {
     }
 
     fun stop() {
+        nrealAirTracker?.stop()
+        nrealAirTracker = null
         collectJob?.cancel()
         startJob?.cancel()
         scope.launch { client?.stop() }
