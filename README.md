@@ -23,7 +23,7 @@ How to download:
 ## Features
 - 📷 Load any equirectangular 360° **image** (JPG/PNG) from your device gallery
 - 🎬 Load any equirectangular 360° **video** (MP4/MKV) with full playback
-- 🕶️ **Head tracking** via XREAL One sensors (gyroscope fallback included)
+- 🕶️ **Head tracking** via XREAL One sensors 
 - Smooth OpenGL ES sphere rendering at 60fps
 
 ---
