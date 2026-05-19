@@ -135,7 +135,7 @@
         android:includeFontPadding="false"
         android:text="@string/version_fallback"
         android:textColor="#A1A1A1"
-        android:textSize="9sp"
+        android:textSize="11sp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.498"
@@ -151,7 +151,7 @@
         android:letterSpacing="0.45"
         android:text="@string/main_credit"
         android:textColor="#A1A1A1"
-        android:textSize="10sp"
+        android:textSize="11sp"
         app:layout_constraintBottom_toTopOf="@id/tvVersion"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" />

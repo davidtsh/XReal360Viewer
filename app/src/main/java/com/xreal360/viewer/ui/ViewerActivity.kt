@@ -1,8 +1,8 @@
 package com.xreal360.viewer.ui
 
+import android.annotation.SuppressLint
 import android.graphics.BitmapFactory
 import android.graphics.SurfaceTexture
-import android.content.Context
 import android.content.Intent
 import android.hardware.Sensor
 import android.hardware.SensorEvent
@@ -16,10 +16,13 @@ import android.os.Handler
 import android.os.Looper
 import android.view.MotionEvent
 import android.view.Surface
-import android.view.View
 import android.view.ViewConfiguration
 import android.view.WindowManager
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.net.toUri
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.exoplayer.ExoPlayer
@@ -129,6 +132,7 @@ class ViewerActivity : AppCompatActivity() {
         override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
     }
 
+    @SuppressLint("ClickableViewAccessibility")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityViewerBinding.inflate(layoutInflater)
@@ -137,22 +141,18 @@ class ViewerActivity : AppCompatActivity() {
 
         // Full-screen immersive
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        window.decorView.systemUiVisibility = (
-                View.SYSTEM_UI_FLAG_FULLSCREEN or
-                        View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or
-                        View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-                )
+        enterImmersiveMode()
 
         val uriString = intent.getStringExtra(EXTRA_URI) ?: return finish()
-        val fallbackUri = Uri.parse(uriString)
+        val fallbackUri = uriString.toUri()
         val playlist = intent.getStringArrayListExtra(EXTRA_URIS)
-            ?.map { Uri.parse(it) }
+            ?.map { it.toUri() }
             .orEmpty()
         mediaUris = playlist.ifEmpty { listOf(fallbackUri) }
         currentIndex = intent.getIntExtra(EXTRA_INDEX, 0).coerceIn(0, mediaUris.lastIndex)
 
         // Shake / accelerometer
-        sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
+        sensorManager = getSystemService(SensorManager::class.java)
         accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
 
         // Setup GL
@@ -292,6 +292,19 @@ class ViewerActivity : AppCompatActivity() {
 
         binding.glSurfaceView.setOnClickListener {
             openPicker()
+        }
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) enterImmersiveMode()
+    }
+
+    private fun enterImmersiveMode() {
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        WindowInsetsControllerCompat(window, window.decorView).apply {
+            hide(WindowInsetsCompat.Type.systemBars())
+            systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         }
     }
 
