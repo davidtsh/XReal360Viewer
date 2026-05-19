@@ -12,11 +12,6 @@ A 360° image and video viewer for the **XREAL One** glasses, built with Kotlin,
 
 1.1.2 Shake to rotate 180º. Català. New design.
 
-How to download:
-
-<img width="400" alt="howtodownload" src="https://github.com/user-attachments/assets/ac2025e9-7ea8-407a-8834-a988bac78581" />
-
-
 <video src="https://github.com/user-attachments/assets/0976bb51-27f5-4b62-a7ee-926c3883923a" controls autoplay loop muted></video>
 
 
@@ -81,9 +76,6 @@ Update the version to match your download from https://developer.xreal.com
 implementation fileTree(dir: 'libs', include: ['*.aar'])
 ```
 
-**Option C — Use gyroscope fallback only (no SDK needed):**
-The app works out-of-the-box with the Android rotation vector sensor.
-Skip this step and the phone's gyro will be used for head tracking.
 
 ### 4. Enable XREAL head tracking in code
 Once the SDK is added, open `HeadTracker.kt` and:

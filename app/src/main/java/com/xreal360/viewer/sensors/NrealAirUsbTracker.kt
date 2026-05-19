@@ -158,22 +158,27 @@ internal class NrealAirUsbTracker(context: Context) {
             return
         }
 
-        roll += (gyroX - gyroBiasX) * dt
-        pitch += (gyroY - gyroBiasY) * dt
-        yaw += (gyroZ - gyroBiasZ) * dt
+        val appPitchRate = (gyroX - gyroBiasX) * NREAL_PITCH_SIGN
+        val appRollRate = (gyroY - gyroBiasY) * NREAL_ROLL_SIGN
+        val appYawRate = (gyroZ - gyroBiasZ) * NREAL_YAW_SIGN
+
+        pitch += appPitchRate * dt
+        roll += appRollRate * dt
+        yaw += appYawRate * dt
 
         val accelX = sample.accelX * ACCEL_SCALE_G
         val accelY = sample.accelY * ACCEL_SCALE_G
         val accelZ = sample.accelZ * ACCEL_SCALE_G
         val accelMagnitude = sqrt(accelX * accelX + accelY * accelY + accelZ * accelZ)
         if (accelMagnitude in 0.75f..1.25f) {
-            val accelRoll = Math.toDegrees(atan2(accelY.toDouble(), accelZ.toDouble())).toFloat()
-            val accelPitch = Math.toDegrees(
+            val accelPitch = Math.toDegrees(atan2(accelY.toDouble(), accelZ.toDouble())).toFloat() *
+                NREAL_PITCH_SIGN
+            val accelRoll = Math.toDegrees(
                 atan2(
                     -accelX.toDouble(),
                     sqrt((accelY * accelY + accelZ * accelZ).toDouble())
                 )
-            ).toFloat()
+            ).toFloat() * NREAL_ROLL_SIGN
             roll = blendDegrees(roll, accelRoll, ACCEL_CORRECTION_ALPHA)
             pitch = blendDegrees(pitch, accelPitch, ACCEL_CORRECTION_ALPHA)
         }
@@ -360,6 +365,9 @@ internal class NrealAirUsbTracker(context: Context) {
         private const val ACCEL_CORRECTION_ALPHA = 0.015f
         private const val MIN_DELTA_SECONDS = 0.001f
         private const val MAX_DELTA_SECONDS = 0.05f
+        private const val NREAL_PITCH_SIGN = -1f
+        private const val NREAL_ROLL_SIGN = 1f
+        private const val NREAL_YAW_SIGN = -1f
 
         private val START_IMU_PAYLOAD = byteArrayOf(
             0xaa.toByte(),
