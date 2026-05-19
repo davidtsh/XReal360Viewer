@@ -14,6 +14,7 @@ import android.hardware.usb.UsbManager
 import android.opengl.Matrix
 import android.os.Build
 import android.util.Log
+import androidx.core.content.ContextCompat
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.sin
@@ -81,7 +82,7 @@ internal class NrealAirUsbTracker(context: Context) {
         stopReader()
         closeConnection()
 
-        val interfaceToClaim = findHidInterface(device, IMU_INTERFACE_CLASS, IMU_INTERFACE_SUBCLASS)
+        val interfaceToClaim = findHidInterface(device)
         if (interfaceToClaim == null) {
             Log.w(TAG, "Nreal Air IMU HID interface not found.")
             return
@@ -179,8 +180,8 @@ internal class NrealAirUsbTracker(context: Context) {
                     sqrt((accelY * accelY + accelZ * accelZ).toDouble())
                 )
             ).toFloat() * NREAL_ROLL_SIGN
-            roll = blendDegrees(roll, accelRoll, ACCEL_CORRECTION_ALPHA)
-            pitch = blendDegrees(pitch, accelPitch, ACCEL_CORRECTION_ALPHA)
+            roll = blendDegrees(roll, accelRoll)
+            pitch = blendDegrees(pitch, accelPitch)
         }
 
         val normalizedYaw = normalizeDegrees(yaw)
@@ -266,12 +267,12 @@ internal class NrealAirUsbTracker(context: Context) {
             addAction(UsbManager.ACTION_USB_DEVICE_ATTACHED)
             addAction(UsbManager.ACTION_USB_DEVICE_DETACHED)
         }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            appContext.registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED)
-        } else {
-            @Suppress("DEPRECATION")
-            appContext.registerReceiver(receiver, filter)
-        }
+        ContextCompat.registerReceiver(
+            appContext,
+            receiver,
+            filter,
+            ContextCompat.RECEIVER_NOT_EXPORTED
+        )
         usbReceiver = receiver
         receiverRegistered = true
     }
@@ -293,13 +294,13 @@ internal class NrealAirUsbTracker(context: Context) {
         readerThread = null
     }
 
-    private fun findHidInterface(device: UsbDevice, interfaceId: Int, interfaceSubclass: Int): UsbInterface? {
+    private fun findHidInterface(device: UsbDevice): UsbInterface? {
         for (index in 0 until device.interfaceCount) {
             val usbInterface = device.getInterface(index)
             if (
                 usbInterface.interfaceClass == UsbConstants.USB_CLASS_HID &&
-                usbInterface.interfaceSubclass == interfaceSubclass &&
-                usbInterface.id == interfaceId
+                usbInterface.interfaceSubclass == IMU_INTERFACE_SUBCLASS &&
+                usbInterface.id == IMU_INTERFACE_CLASS
             ) {
                 return usbInterface
             }
@@ -357,6 +358,7 @@ internal class NrealAirUsbTracker(context: Context) {
         private const val IMU_IN_ENDPOINT = 0x84
         private const val IMU_OUT_ENDPOINT = 0x05
         private const val IMU_PACKET_SIZE = 64
+        private const val TIMESTAMP_OFFSET = 4
         private const val USB_TIMEOUT_MS = 200
 
         private const val GYRO_SCALE_DPS = 2000f / 8_388_608f
@@ -365,7 +367,7 @@ internal class NrealAirUsbTracker(context: Context) {
         private const val ACCEL_CORRECTION_ALPHA = 0.015f
         private const val MIN_DELTA_SECONDS = 0.001f
         private const val MAX_DELTA_SECONDS = 0.05f
-        private const val NREAL_PITCH_SIGN = -1f
+        private const val NREAL_PITCH_SIGN = 1f
         private const val NREAL_ROLL_SIGN = 1f
         private const val NREAL_YAW_SIGN = -1f
 
@@ -400,7 +402,7 @@ internal class NrealAirUsbTracker(context: Context) {
 
         private fun decodeImuSample(packet: ByteArray): ImuSample =
             ImuSample(
-                timestampNs = u64Le(packet, 4),
+                timestampNs = u64Le(packet),
                 gyroX = s24Le(packet, 18),
                 gyroY = s24Le(packet, 21),
                 gyroZ = s24Le(packet, 24),
@@ -409,10 +411,10 @@ internal class NrealAirUsbTracker(context: Context) {
                 accelZ = s24Le(packet, 39)
             )
 
-        private fun u64Le(packet: ByteArray, offset: Int): Long {
+        private fun u64Le(packet: ByteArray): Long {
             var value = 0L
             for (index in 0 until 8) {
-                value = value or ((packet[offset + index].toLong() and 0xffL) shl (8 * index))
+                value = value or ((packet[TIMESTAMP_OFFSET + index].toLong() and 0xffL) shl (8 * index))
             }
             return value
         }
@@ -424,8 +426,8 @@ internal class NrealAirUsbTracker(context: Context) {
             return if (value and 0x800000 != 0) value or -0x1000000 else value
         }
 
-        private fun blendDegrees(current: Float, target: Float, alpha: Float): Float =
-            normalizeDegrees(current + shortestDeltaDegrees(current, target) * alpha)
+        private fun blendDegrees(current: Float, target: Float): Float =
+            normalizeDegrees(current + shortestDeltaDegrees(current, target) * ACCEL_CORRECTION_ALPHA)
 
         private fun shortestDeltaDegrees(from: Float, to: Float): Float =
             normalizeDegrees(to - from)
