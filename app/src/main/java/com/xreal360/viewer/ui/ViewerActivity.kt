@@ -41,6 +41,8 @@ class ViewerActivity : AppCompatActivity() {
         private const val MAX_ZOOM_FACTOR = 3f
         private const val FAST_FORWARD_INTERVAL_MS = 250L
         private const val FAST_FORWARD_EXTRA_MS = FAST_FORWARD_INTERVAL_MS * 4
+        private const val REWIND_EXTRA_MS = FAST_FORWARD_INTERVAL_MS * 5
+        private const val TWO_FINGER_TAP_CANCEL_MULTIPLIER = 2f
 
         // Shake detection
         private const val SHAKE_THRESHOLD_G = 2.5f
@@ -60,13 +62,19 @@ class ViewerActivity : AppCompatActivity() {
     private var mediaUris: List<Uri> = emptyList()
     private var currentIndex = 0
     @Volatile private var mediaGeneration = 0
+    private var touchSlopPx = 0f
     private var touchDownX = 0f
     private var touchDownY = 0f
+    private var twoFingerStartCenterX = 0f
+    private var twoFingerStartCenterY = 0f
     private var zoomFactor = 1f
     private var pinchStartDistance = 0f
     private var pinchStartZoomFactor = 1f
     private var isPinching = false
     private var gestureWasPinch = false
+    private var twoFingerGestureActive = false
+    private var twoFingerTapCanceled = false
+    private var gestureWasTwoFingerTap = false
     private val longPressHandler = Handler(Looper.getMainLooper())
     private val videoFastForwardRunnable = Runnable { startVideoFastForward() }
     private val videoFastForwardTick = object : Runnable {
@@ -79,6 +87,18 @@ class ViewerActivity : AppCompatActivity() {
     }
     private var isFastForwarding = false
     private var gestureWasFastForward = false
+    private val videoRewindRunnable = Runnable { startVideoRewind() }
+    private val videoRewindTick = object : Runnable {
+        override fun run() {
+            rewindStep()
+            if (isRewinding) {
+                longPressHandler.postDelayed(this, FAST_FORWARD_INTERVAL_MS)
+            }
+        }
+    }
+    private var isRewinding = false
+    private var gestureWasRewind = false
+    private var playWhenReadyBeforeRewind = true
 
     // Shake detection
     private lateinit var sensorManager: SensorManager
@@ -113,6 +133,7 @@ class ViewerActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityViewerBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        touchSlopPx = ViewConfiguration.get(this).scaledTouchSlop.toFloat()
 
         // Full-screen immersive
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
@@ -173,29 +194,56 @@ class ViewerActivity : AppCompatActivity() {
                     isPinching = false
                     gestureWasPinch = false
                     gestureWasFastForward = false
+                    gestureWasRewind = false
+                    gestureWasTwoFingerTap = false
+                    twoFingerGestureActive = false
+                    twoFingerTapCanceled = false
                     scheduleVideoFastForward()
                     true
                 }
                 MotionEvent.ACTION_POINTER_DOWN -> {
                     cancelVideoFastForward()
-                    if (event.pointerCount >= 2) {
+                    if (event.pointerCount == 2) {
                         pinchStartDistance = pointerDistance(event)
                         pinchStartZoomFactor = zoomFactor
-                        isPinching = true
+                        twoFingerStartCenterX = pointerCenterX(event)
+                        twoFingerStartCenterY = pointerCenterY(event)
+                        isPinching = false
+                        twoFingerGestureActive = true
+                        twoFingerTapCanceled = false
+                        scheduleVideoRewind()
+                    } else if (event.pointerCount > 2) {
+                        cancelVideoRewind()
+                        twoFingerGestureActive = false
+                        twoFingerTapCanceled = true
                         gestureWasPinch = true
                     }
                     true
                 }
                 MotionEvent.ACTION_MOVE -> {
-                    if (event.pointerCount >= 2 && isPinching && pinchStartDistance > 0f) {
-                        val scale = pointerDistance(event) / pinchStartDistance
-                        setZoomFactor(pinchStartZoomFactor * scale)
-                    } else if (!isFastForwarding && hasMovedPastSwipeThreshold(event)) {
+                    if (event.pointerCount >= 2 && twoFingerGestureActive && pinchStartDistance > 0f) {
+                        handleTwoFingerMove(event)
+                    } else if (!isFastForwarding && !isRewinding && hasMovedPastSwipeThreshold(event)) {
                         cancelVideoFastForward()
                     }
                     true
                 }
                 MotionEvent.ACTION_POINTER_UP -> {
+                    if (event.pointerCount == 2 && twoFingerGestureActive) {
+                        val wasRewinding = isRewinding || gestureWasRewind
+                        val cleanTwoFingerTap = !wasRewinding &&
+                                !gestureWasPinch &&
+                                !twoFingerTapCanceled
+                        cancelVideoRewind()
+                        if (cleanTwoFingerTap) {
+                            gestureWasTwoFingerTap = true
+                            if (isCurrentVideo()) {
+                                toggleVideoPlayback()
+                            }
+                        }
+                        twoFingerGestureActive = false
+                        twoFingerTapCanceled = false
+                    }
                     if (event.pointerCount <= 2) {
                         isPinching = false
                     }
@@ -203,13 +251,15 @@ class ViewerActivity : AppCompatActivity() {
                 }
                 MotionEvent.ACTION_UP -> {
                     val wasFastForwarding = isFastForwarding || gestureWasFastForward
+                    val wasTwoFingerGesture = gestureWasRewind || gestureWasTwoFingerTap || twoFingerGestureActive
                     cancelVideoFastForward()
+                    cancelVideoRewind()
                     val dx = event.x - touchDownX
                     val dy = event.y - touchDownY
                     val isHorizontalSwipe = abs(dx) > SWIPE_THRESHOLD_PX && abs(dx) > abs(dy)
                     val isVerticalSwipe = abs(dy) > SWIPE_THRESHOLD_PX && abs(dy) > abs(dx)
-                    if (wasFastForwarding) {
-                        // Long-press fast-forward consumes the gesture.
+                    if (wasFastForwarding || wasTwoFingerGesture) {
+                        // Video seek and two-finger playback gestures consume the tap.
                     } else if (!gestureWasPinch && (isHorizontalSwipe || isVerticalSwipe)) {
                         val next = if (isHorizontalSwipe) dx < 0f else dy < 0f
                         if (next) showNextMedia() else showPreviousMedia()
@@ -218,13 +268,22 @@ class ViewerActivity : AppCompatActivity() {
                     }
                     isPinching = false
                     gestureWasPinch = false
+                    gestureWasRewind = false
+                    gestureWasTwoFingerTap = false
+                    twoFingerGestureActive = false
+                    twoFingerTapCanceled = false
                     true
                 }
                 MotionEvent.ACTION_CANCEL -> {
                     cancelVideoFastForward()
+                    cancelVideoRewind()
                     isPinching = false
                     gestureWasPinch = false
                     gestureWasFastForward = false
+                    gestureWasRewind = false
+                    gestureWasTwoFingerTap = false
+                    twoFingerGestureActive = false
+                    twoFingerTapCanceled = false
                     true
                 }
                 else -> true
@@ -277,6 +336,7 @@ class ViewerActivity : AppCompatActivity() {
     private fun showMedia(index: Int) {
         if (mediaUris.isEmpty()) return
         cancelVideoFastForward()
+        cancelVideoRewind()
         currentIndex = wrapIndex(index)
         val targetGeneration = ++mediaGeneration
         val targetIndex = currentIndex
@@ -342,6 +402,33 @@ class ViewerActivity : AppCompatActivity() {
                 abs(event.y - touchDownY) > SWIPE_THRESHOLD_PX
     }
 
+    private fun handleTwoFingerMove(event: MotionEvent) {
+        val distance = pointerDistance(event)
+        val distanceDelta = abs(distance - pinchStartDistance)
+        val centerDeltaX = pointerCenterX(event) - twoFingerStartCenterX
+        val centerDeltaY = pointerCenterY(event) - twoFingerStartCenterY
+        val centerDelta = sqrt(centerDeltaX * centerDeltaX + centerDeltaY * centerDeltaY)
+
+        if (!isPinching && distanceDelta > touchSlopPx) {
+            isPinching = true
+            gestureWasPinch = true
+            twoFingerTapCanceled = true
+            cancelVideoRewind()
+        }
+
+        if (centerDelta > touchSlopPx * TWO_FINGER_TAP_CANCEL_MULTIPLIER) {
+            twoFingerTapCanceled = true
+            if (!isRewinding) {
+                cancelVideoRewind()
+            }
+        }
+
+        if (isPinching && pinchStartDistance > 0f) {
+            val scale = distance / pinchStartDistance
+            setZoomFactor(pinchStartZoomFactor * scale)
+        }
+    }
+
     private fun scheduleVideoFastForward() {
         cancelVideoFastForward()
         if (!isCurrentVideo()) return
@@ -366,6 +453,35 @@ class ViewerActivity : AppCompatActivity() {
         isFastForwarding = false
     }
 
+    private fun scheduleVideoRewind() {
+        cancelVideoRewind()
+        if (!isCurrentVideo()) return
+        longPressHandler.postDelayed(
+            videoRewindRunnable,
+            ViewConfiguration.getLongPressTimeout().toLong()
+        )
+    }
+
+    private fun startVideoRewind() {
+        val player = exoPlayer ?: return
+        if (!isCurrentVideo()) return
+        isRewinding = true
+        gestureWasRewind = true
+        playWhenReadyBeforeRewind = player.playWhenReady
+        player.playWhenReady = false
+        rewindStep()
+        longPressHandler.postDelayed(videoRewindTick, FAST_FORWARD_INTERVAL_MS)
+    }
+
+    private fun cancelVideoRewind() {
+        longPressHandler.removeCallbacks(videoRewindRunnable)
+        longPressHandler.removeCallbacks(videoRewindTick)
+        if (isRewinding) {
+            exoPlayer?.playWhenReady = playWhenReadyBeforeRewind
+        }
+        isRewinding = false
+    }
+
     private fun fastForwardStep() {
         val player = exoPlayer ?: return
         if (!isCurrentVideo()) return
@@ -377,6 +493,19 @@ class ViewerActivity : AppCompatActivity() {
             currentPosition + FAST_FORWARD_EXTRA_MS
         }
         player.seekTo(targetPosition)
+    }
+
+    private fun rewindStep() {
+        val player = exoPlayer ?: return
+        if (!isCurrentVideo()) return
+        val targetPosition = maxOf(player.currentPosition - REWIND_EXTRA_MS, 0L)
+        player.seekTo(targetPosition)
+    }
+
+    private fun toggleVideoPlayback() {
+        val player = exoPlayer ?: return
+        if (!isCurrentVideo()) return
+        player.playWhenReady = !player.playWhenReady
     }
 
     private fun openPicker() {
@@ -393,6 +522,16 @@ class ViewerActivity : AppCompatActivity() {
         val dx = event.getX(0) - event.getX(1)
         val dy = event.getY(0) - event.getY(1)
         return sqrt(dx * dx + dy * dy)
+    }
+
+    private fun pointerCenterX(event: MotionEvent): Float {
+        if (event.pointerCount < 2) return event.x
+        return (event.getX(0) + event.getX(1)) / 2f
+    }
+
+    private fun pointerCenterY(event: MotionEvent): Float {
+        if (event.pointerCount < 2) return event.y
+        return (event.getY(0) + event.getY(1)) / 2f
     }
 
     private fun setZoomFactor(value: Float) {
@@ -447,6 +586,7 @@ class ViewerActivity : AppCompatActivity() {
     override fun onPause() {
         super.onPause()
         cancelVideoFastForward()
+        cancelVideoRewind()
         binding.glSurfaceView.onPause()
         headTracker.stop()
         exoPlayer?.playWhenReady = false
@@ -460,6 +600,7 @@ class ViewerActivity : AppCompatActivity() {
 
     private fun releaseVideo() {
         cancelVideoFastForward()
+        cancelVideoRewind()
         exoPlayer?.clearVideoSurface()
         exoPlayer?.release()
         exoPlayer = null

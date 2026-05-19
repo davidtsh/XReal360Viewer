@@ -3,15 +3,17 @@
     <string name="app_name">XREAL 360° Viewer</string>
     <string name="open_360_file">OPEN 360° FILE</string>
     <string name="main_instructions_header">INTERACTIONS</string>
-    <string name="main_instructions">TAP TO CLOSE\nSWIPE TO CHANGE FILE IN THE SAME FOLDER\nPINCH TO ZOOM\nTAP &amp; HOLD TO SPEED VIDEO ×5\nSHAKE TO ROTATE 180°</string>
-    <string name="instruction_tap"><b>TAP</b> TO CLOSE</string>
+    <string name="main_instructions">TAP TO CLOSE FILE\nSWIPE TO CHANGE FILE IN THE SAME FOLDER\nPINCH TO ZOOM\nTAP &amp; HOLD TO SPEED VIDEO ×5\n2-FINGER TAP TO PLAY/PAUSE VIDEO\n2-FINGER HOLD TO REWIND VIDEO ×5\nSHAKE TO ROTATE 180°</string>
+    <string name="instruction_tap"><b>TAP</b> TO CLOSE FILE</string>
     <string name="instruction_swipe"><b>SWIPE</b> TO CHANGE FILE IN THE SAME FOLDER</string>
     <string name="instruction_pinch"><b>PINCH</b> TO ZOOM</string>
     <string name="instruction_hold"><b>TAP &amp; HOLD</b> TO SPEED VIDEO ×5</string>
+    <string name="instruction_two_finger_tap"><b>2-FINGER TAP</b> TO PLAY/PAUSE VIDEO</string>
+    <string name="instruction_two_finger_hold"><b>2-FINGER HOLD</b> TO REWIND VIDEO ×5</string>
     <string name="instruction_shake"><b>SHAKE</b> TO ROTATE 180°</string>
     <string name="main_credit">vibe-coded by davidtsh</string>
     <string name="version_format">v.%1$s</string>
-    <string name="version_fallback">v.1.1.2</string>
+    <string name="version_fallback">v.1.1.3</string>
     <string name="storage_permission_required">Storage permission required</string>
     <string name="unsupported_media_file">Select an image or video file</string>
 </resources>
