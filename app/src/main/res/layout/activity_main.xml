@@ -126,34 +126,4 @@
 
     </LinearLayout>
 
-    <TextView
-        android:id="@+id/tvVersion"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="60dp"
-        android:fontFamily="sans-serif"
-        android:includeFontPadding="false"
-        android:text="@string/version_fallback"
-        android:textColor="#A1A1A1"
-        android:textSize="11sp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.498"
-        app:layout_constraintStart_toStartOf="parent" />
-
-    <TextView
-        android:id="@+id/tvCredit"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="24dp"
-        android:fontFamily="sans-serif"
-        android:includeFontPadding="false"
-        android:letterSpacing="0.45"
-        android:text="@string/main_credit"
-        android:textColor="#A1A1A1"
-        android:textSize="11sp"
-        app:layout_constraintBottom_toTopOf="@id/tvVersion"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
-
 </androidx.constraintlayout.widget.ConstraintLayout>

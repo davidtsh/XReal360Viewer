@@ -16,11 +16,13 @@ import android.provider.MediaStore
 import android.provider.OpenableColumns
 import android.widget.Toast
 import android.view.animation.AccelerateDecelerateInterpolator
+import android.view.animation.DecelerateInterpolator
 import androidx.activity.result.contract.ActivityResultContract
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
-import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.core.content.edit
+import androidx.core.net.toUri
 import com.xreal360.viewer.R
 import com.xreal360.viewer.databinding.ActivityMainBinding
 import java.util.Locale
@@ -29,6 +31,7 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
     private var buttonGlowAnimator: AnimatorSet? = null
+    private var instructionsIntroStarted = false
 
     // Opens a regular file view so images and videos can appear together in mixed folders.
     private class OpenDocumentWithInitialUri : ActivityResultContract<Uri?, Uri?>() {
@@ -71,6 +74,10 @@ class MainActivity : AppCompatActivity() {
         private const val KEY_LAST_URI = "last_uri"
         private const val KEY_LAST_BUCKET_ID = "last_bucket_id"
         private const val EXTERNAL_STORAGE_DOCUMENTS_AUTHORITY = "com.android.externalstorage.documents"
+        private const val INSTRUCTIONS_ANIMATION_DELAY_MS = 500L
+        private const val INSTRUCTIONS_ANIMATION_DURATION_MS = 2200L
+        private const val INSTRUCTIONS_STAGGER_DELAY_MS = 360L
+        private const val INSTRUCTION_LINE_STAGGER_MS = 150L
         private val SUPPORTED_EXTENSIONS = setOf(
             "jpg", "jpeg", "png", "webp", "heic", "heif",
             "mp4", "m4v", "mov", "mkv", "webm"
@@ -78,19 +85,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        installSplashScreen()
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        try {
-            val pInfo = packageManager.getPackageInfo(packageName, 0)
-            binding.tvVersion.text = getString(R.string.version_format, pInfo.versionName)
-        } catch (e: Exception) {
-            binding.tvVersion.setText(R.string.version_fallback)
-        }
-
         binding.btnPickImage.setOnClickListener { checkPermissionsAndOpen() }
+        startInstructionsIntroAnimationOnce()
 
         if (intent.getBooleanExtra(EXTRA_AUTO_OPEN, false)) {
             checkPermissionsAndOpen()
@@ -104,6 +104,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onPause() {
         stopButtonGlowAnimation()
+        stopInstructionsIntroAnimation()
         super.onPause()
     }
 
@@ -131,11 +132,108 @@ class MainActivity : AppCompatActivity() {
         buttonGlowAnimator = null
     }
 
+    private fun startInstructionsIntroAnimation() {
+        stopInstructionsIntroAnimation()
+
+        val header = binding.tvInstructionsHeader
+        val instructions = binding.tvInstructions
+        val interpolator = DecelerateInterpolator(1.8f)
+        header.alpha = 0f
+        header.scaleX = 0.92f
+        header.scaleY = 0.92f
+        header.translationY = 8f
+
+        instructions.alpha = 1f
+        instructions.scaleX = 1f
+        instructions.scaleY = 1f
+        instructions.translationY = 0f
+        for (index in 0 until instructions.childCount) {
+            instructions.getChildAt(index).apply {
+                alpha = 0f
+                scaleX = 0.94f
+                scaleY = 0.94f
+                translationY = 12f
+            }
+        }
+
+        header.animate()
+            .alpha(1f)
+            .scaleX(1f)
+            .scaleY(1f)
+            .translationY(0f)
+            .setStartDelay(INSTRUCTIONS_ANIMATION_DELAY_MS)
+            .setDuration(INSTRUCTIONS_ANIMATION_DURATION_MS)
+            .setInterpolator(interpolator)
+            .start()
+
+        for (index in 0 until instructions.childCount) {
+            val line = instructions.getChildAt(index)
+            val lineDelay = INSTRUCTIONS_ANIMATION_DELAY_MS +
+                INSTRUCTIONS_STAGGER_DELAY_MS +
+                index * INSTRUCTION_LINE_STAGGER_MS
+            line.animate()
+                .alpha(1f)
+                .scaleX(1f)
+                .scaleY(1f)
+                .translationY(0f)
+                .setStartDelay(lineDelay)
+                .setDuration(INSTRUCTIONS_ANIMATION_DURATION_MS)
+                .setInterpolator(interpolator)
+                .start()
+        }
+    }
+
+    private fun startInstructionsIntroAnimationOnce() {
+        if (instructionsIntroStarted) return
+        instructionsIntroStarted = true
+        startInstructionsIntroAnimation()
+    }
+
+    private fun stopInstructionsIntroAnimation() {
+        binding.tvInstructionsHeader.animate().cancel()
+        val instructions = binding.tvInstructions
+        instructions.animate().cancel()
+        for (index in 0 until instructions.childCount) {
+            instructions.getChildAt(index).animate().cancel()
+        }
+        showInstructionsAtRest()
+    }
+
+    private fun showInstructionsAtRest() {
+        binding.tvInstructionsHeader.apply {
+            alpha = 1f
+            scaleX = 1f
+            scaleY = 1f
+            translationY = 0f
+        }
+        binding.tvInstructions.apply {
+            alpha = 1f
+            scaleX = 1f
+            scaleY = 1f
+            translationY = 0f
+            for (index in 0 until childCount) {
+                getChildAt(index).apply {
+                    alpha = 1f
+                    scaleX = 1f
+                    scaleY = 1f
+                    translationY = 0f
+                }
+            }
+        }
+    }
+
     private fun checkPermissionsAndOpen() {
-        val required = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            arrayOf(Manifest.permission.READ_MEDIA_IMAGES, Manifest.permission.READ_MEDIA_VIDEO)
-        } else {
-            arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE)
+        val required = when {
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE -> arrayOf(
+                Manifest.permission.READ_MEDIA_IMAGES,
+                Manifest.permission.READ_MEDIA_VIDEO,
+                Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED
+            )
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU -> arrayOf(
+                Manifest.permission.READ_MEDIA_IMAGES,
+                Manifest.permission.READ_MEDIA_VIDEO
+            )
+            else -> arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE)
         }
 
         val notGranted = required.filter {
@@ -162,38 +260,35 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun saveLastSelection(uri: Uri) {
-        val editor = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit()
-            .putString(KEY_LAST_URI, uri.toString())
-
         val selectedMedia = resolveMediaStoreItem(uri)
         val bucketId = selectedMedia?.let { queryBucketId(it.uri, it.isVideo) }
-        if (bucketId != null) {
-            editor.putString(KEY_LAST_BUCKET_ID, bucketId)
-        } else {
-            editor.remove(KEY_LAST_BUCKET_ID)
-        }
 
-        editor.apply()
+        getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit {
+            putString(KEY_LAST_URI, uri.toString())
+            if (bucketId != null) {
+                putString(KEY_LAST_BUCKET_ID, bucketId)
+            } else {
+                remove(KEY_LAST_BUCKET_ID)
+            }
+        }
     }
 
     private fun getLastUri(): Uri? {
-        val uriString = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val uriString = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
             .getString(KEY_LAST_URI, null) ?: return null
-        return Uri.parse(uriString)
+        return uriString.toUri()
     }
 
     private fun getLastFolderUri(): Uri? {
-        val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
         val bucketId = prefs.getString(KEY_LAST_BUCKET_ID, null) ?: return getLastUri()
         val entries = (
             queryBucketMedia(
                 collection = MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-                bucketColumn = MediaStore.Images.Media.BUCKET_ID,
                 bucketId = bucketId,
                 isVideo = false
             ) + queryBucketMedia(
                 collection = MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
-                bucketColumn = MediaStore.Video.Media.BUCKET_ID,
                 bucketId = bucketId,
                 isVideo = true
             )
@@ -247,12 +342,10 @@ class MainActivity : AppCompatActivity() {
         val entries = (
             queryBucketMedia(
                 collection = MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-                bucketColumn = MediaStore.Images.Media.BUCKET_ID,
                 bucketId = bucketId,
                 isVideo = false
             ) + queryBucketMedia(
                 collection = MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
-                bucketColumn = MediaStore.Video.Media.BUCKET_ID,
                 bucketId = bucketId,
                 isVideo = true
             )
@@ -288,14 +381,13 @@ class MainActivity : AppCompatActivity() {
 
     private fun queryBucketMedia(
         collection: Uri,
-        bucketColumn: String,
         bucketId: String,
         isVideo: Boolean
     ): List<MediaPlaylistEntry> {
         val idColumn = MediaStore.MediaColumns._ID
         val displayNameColumn = MediaStore.MediaColumns.DISPLAY_NAME
         val projection = arrayOf(idColumn, displayNameColumn)
-        val selection = "$bucketColumn = ?"
+        val selection = "${MediaStore.MediaColumns.BUCKET_ID} = ?"
         val entries = mutableListOf<MediaPlaylistEntry>()
 
         contentResolver.query(collection, projection, selection, arrayOf(bucketId), null)?.use { cursor ->
@@ -392,7 +484,7 @@ class MainActivity : AppCompatActivity() {
         val selection: String
         val args: Array<String>
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && relativePath != null) {
+        if (relativePath != null) {
             selection = "$displayNameColumn = ? AND ${MediaStore.MediaColumns.RELATIVE_PATH} = ?"
             args = arrayOf(displayName, relativePath)
         } else {
