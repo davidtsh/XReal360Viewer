@@ -66,6 +66,7 @@ class ViewerActivity : AppCompatActivity() {
     private var currentIndex = 0
     @Volatile private var mediaGeneration = 0
     private var touchSlopPx = 0f
+    private var doubleTapSlopPx = 0f
     private var touchDownX = 0f
     private var touchDownY = 0f
     private var twoFingerStartCenterX = 0f
@@ -79,7 +80,13 @@ class ViewerActivity : AppCompatActivity() {
     private var twoFingerTapCanceled = false
     private var gestureWasTwoFingerTap = false
     private val longPressHandler = Handler(Looper.getMainLooper())
-    private val videoFastForwardRunnable = Runnable { startVideoFastForward() }
+    private val tapHandler = Handler(Looper.getMainLooper())
+    private val tapHoldRunnable = Runnable { startVideoFastForward() }
+    private val twoFingerHoldRunnable = Runnable { startVideoRewind() }
+    private val singleTapRunnable = Runnable {
+        lastTapUpTimeMs = 0L
+        toggleVideoPlayback()
+    }
     private val videoFastForwardTick = object : Runnable {
         override fun run() {
             fastForwardStep()
@@ -90,7 +97,6 @@ class ViewerActivity : AppCompatActivity() {
     }
     private var isFastForwarding = false
     private var gestureWasFastForward = false
-    private val videoRewindRunnable = Runnable { startVideoRewind() }
     private val videoRewindTick = object : Runnable {
         override fun run() {
             rewindStep()
@@ -101,6 +107,11 @@ class ViewerActivity : AppCompatActivity() {
     }
     private var isRewinding = false
     private var gestureWasRewind = false
+    private var gestureWasHoldAction = false
+    private var twoFingerHoldActive = false
+    private var lastTapUpTimeMs = 0L
+    private var lastTapX = 0f
+    private var lastTapY = 0f
     private var playWhenReadyBeforeRewind = true
 
     // Shake detection
@@ -125,7 +136,9 @@ class ViewerActivity : AppCompatActivity() {
                 val now = System.currentTimeMillis()
                 if (now - lastShakeTimeMs > SHAKE_COOLDOWN_MS) {
                     lastShakeTimeMs = now
-                    triggerYawAnimation()
+                    runOnUiThread {
+                        triggerYawAnimation()
+                    }
                 }
             }
         }
@@ -138,6 +151,7 @@ class ViewerActivity : AppCompatActivity() {
         binding = ActivityViewerBinding.inflate(layoutInflater)
         setContentView(binding.root)
         touchSlopPx = ViewConfiguration.get(this).scaledTouchSlop.toFloat()
+        doubleTapSlopPx = ViewConfiguration.get(this).scaledDoubleTapSlop.toFloat()
 
         // Full-screen immersive
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
@@ -196,13 +210,14 @@ class ViewerActivity : AppCompatActivity() {
                     gestureWasFastForward = false
                     gestureWasRewind = false
                     gestureWasTwoFingerTap = false
+                    gestureWasHoldAction = false
                     twoFingerGestureActive = false
                     twoFingerTapCanceled = false
-                    scheduleVideoFastForward()
+                    scheduleTapHoldInteraction()
                     true
                 }
                 MotionEvent.ACTION_POINTER_DOWN -> {
-                    cancelVideoFastForward()
+                    cancelTapHoldInteraction()
                     if (event.pointerCount == 2) {
                         pinchStartDistance = pointerDistance(event)
                         pinchStartZoomFactor = zoomFactor
@@ -211,9 +226,9 @@ class ViewerActivity : AppCompatActivity() {
                         isPinching = false
                         twoFingerGestureActive = true
                         twoFingerTapCanceled = false
-                        scheduleVideoRewind()
+                        scheduleTwoFingerHoldInteraction()
                     } else if (event.pointerCount > 2) {
-                        cancelVideoRewind()
+                        cancelTwoFingerHoldInteraction()
                         twoFingerGestureActive = false
                         twoFingerTapCanceled = true
                         gestureWasPinch = true
@@ -224,22 +239,24 @@ class ViewerActivity : AppCompatActivity() {
                     if (event.pointerCount >= 2 && twoFingerGestureActive && pinchStartDistance > 0f) {
                         handleTwoFingerMove(event)
                     } else if (!isFastForwarding && !isRewinding && hasMovedPastSwipeThreshold(event)) {
-                        cancelVideoFastForward()
+                        cancelTapHoldInteraction()
                     }
                     true
                 }
                 MotionEvent.ACTION_POINTER_UP -> {
                     if (event.pointerCount == 2 && twoFingerGestureActive) {
-                        val wasRewinding = isRewinding || gestureWasRewind
-                        val cleanTwoFingerTap = !wasRewinding &&
+                        val wasTwoFingerHold = twoFingerHoldActive ||
+                                isRewinding ||
+                                isFastForwarding ||
+                                gestureWasRewind ||
+                                gestureWasFastForward ||
+                                gestureWasHoldAction
+                        val cleanTwoFingerTap = !wasTwoFingerHold &&
                                 !gestureWasPinch &&
                                 !twoFingerTapCanceled
-                        cancelVideoRewind()
+                        cancelTwoFingerHoldInteraction()
                         if (cleanTwoFingerTap) {
                             gestureWasTwoFingerTap = true
-                            if (isCurrentVideo()) {
-                                toggleVideoPlayback()
-                            }
                         }
                         twoFingerGestureActive = false
                         twoFingerTapCanceled = false
@@ -251,37 +268,44 @@ class ViewerActivity : AppCompatActivity() {
                 }
                 MotionEvent.ACTION_UP -> {
                     val wasFastForwarding = isFastForwarding || gestureWasFastForward
-                    val wasTwoFingerGesture = gestureWasRewind || gestureWasTwoFingerTap || twoFingerGestureActive
-                    cancelVideoFastForward()
-                    cancelVideoRewind()
+                    val wasHoldAction = gestureWasHoldAction || wasFastForwarding || isRewinding || gestureWasRewind
+                    val wasTwoFingerGesture = gestureWasRewind ||
+                            gestureWasTwoFingerTap ||
+                            twoFingerGestureActive ||
+                            twoFingerHoldActive
+                    cancelTapHoldInteraction()
+                    cancelTwoFingerHoldInteraction()
                     val dx = event.x - touchDownX
                     val dy = event.y - touchDownY
                     val isHorizontalSwipe = abs(dx) > SWIPE_THRESHOLD_PX && abs(dx) > abs(dy)
                     val isVerticalSwipe = abs(dy) > SWIPE_THRESHOLD_PX && abs(dy) > abs(dx)
-                    if (wasFastForwarding || wasTwoFingerGesture) {
-                        // Video seek and two-finger playback gestures consume the tap.
+                    if (wasHoldAction || wasTwoFingerGesture) {
+                        // Hold and two-finger actions consume the tap.
                     } else if (!gestureWasPinch && (isHorizontalSwipe || isVerticalSwipe)) {
                         val next = if (isHorizontalSwipe) dx < 0f else dy < 0f
                         if (next) showNextMedia() else showPreviousMedia()
                     } else if (!gestureWasPinch) {
                         view.performClick()
+                        handleTapCandidate(event)
                     }
-                    isPinching = false
-                    gestureWasPinch = false
-                    gestureWasRewind = false
-                    gestureWasTwoFingerTap = false
-                    twoFingerGestureActive = false
-                    twoFingerTapCanceled = false
-                    true
-                }
-                MotionEvent.ACTION_CANCEL -> {
-                    cancelVideoFastForward()
-                    cancelVideoRewind()
                     isPinching = false
                     gestureWasPinch = false
                     gestureWasFastForward = false
                     gestureWasRewind = false
                     gestureWasTwoFingerTap = false
+                    gestureWasHoldAction = false
+                    twoFingerGestureActive = false
+                    twoFingerTapCanceled = false
+                    true
+                }
+                MotionEvent.ACTION_CANCEL -> {
+                    cancelTouchInteractions()
+                    isPinching = false
+                    gestureWasPinch = false
+                    gestureWasFastForward = false
+                    gestureWasRewind = false
+                    gestureWasTwoFingerTap = false
+                    gestureWasHoldAction = false
                     twoFingerGestureActive = false
                     twoFingerTapCanceled = false
                     true
@@ -291,7 +315,7 @@ class ViewerActivity : AppCompatActivity() {
         }
 
         binding.glSurfaceView.setOnClickListener {
-            openPicker()
+            // Touch handling performs the configured action; this keeps accessibility happy.
         }
     }
 
@@ -348,8 +372,7 @@ class ViewerActivity : AppCompatActivity() {
 
     private fun showMedia(index: Int) {
         if (mediaUris.isEmpty()) return
-        cancelVideoFastForward()
-        cancelVideoRewind()
+        cancelTouchInteractions()
         currentIndex = wrapIndex(index)
         val targetGeneration = ++mediaGeneration
         val targetIndex = currentIndex
@@ -426,13 +449,13 @@ class ViewerActivity : AppCompatActivity() {
             isPinching = true
             gestureWasPinch = true
             twoFingerTapCanceled = true
-            cancelVideoRewind()
+            cancelTwoFingerHoldInteraction()
         }
 
         if (centerDelta > touchSlopPx * TWO_FINGER_TAP_CANCEL_MULTIPLIER) {
             twoFingerTapCanceled = true
-            if (!isRewinding) {
-                cancelVideoRewind()
+            if (!twoFingerHoldActive) {
+                cancelTwoFingerHoldInteraction()
             }
         }
 
@@ -442,13 +465,31 @@ class ViewerActivity : AppCompatActivity() {
         }
     }
 
-    private fun scheduleVideoFastForward() {
-        cancelVideoFastForward()
-        if (!isCurrentVideo()) return
+    private fun scheduleTapHoldInteraction() {
+        cancelTapHoldInteraction()
         longPressHandler.postDelayed(
-            videoFastForwardRunnable,
+            tapHoldRunnable,
             ViewConfiguration.getLongPressTimeout().toLong()
         )
+    }
+
+    private fun cancelTapHoldInteraction() {
+        longPressHandler.removeCallbacks(tapHoldRunnable)
+        cancelVideoFastForward()
+    }
+
+    private fun scheduleTwoFingerHoldInteraction() {
+        cancelTwoFingerHoldInteraction()
+        longPressHandler.postDelayed(
+            twoFingerHoldRunnable,
+            ViewConfiguration.getLongPressTimeout().toLong()
+        )
+    }
+
+    private fun cancelTwoFingerHoldInteraction() {
+        longPressHandler.removeCallbacks(twoFingerHoldRunnable)
+        cancelVideoRewind()
+        twoFingerHoldActive = false
     }
 
     private fun startVideoFastForward() {
@@ -456,30 +497,25 @@ class ViewerActivity : AppCompatActivity() {
         if (!isCurrentVideo()) return
         isFastForwarding = true
         gestureWasFastForward = true
+        gestureWasHoldAction = true
         player.playWhenReady = true
-        longPressHandler.post(videoFastForwardTick)
+        fastForwardStep()
+        longPressHandler.postDelayed(videoFastForwardTick, FAST_FORWARD_INTERVAL_MS)
     }
 
     private fun cancelVideoFastForward() {
-        longPressHandler.removeCallbacks(videoFastForwardRunnable)
         longPressHandler.removeCallbacks(videoFastForwardTick)
         isFastForwarding = false
-    }
-
-    private fun scheduleVideoRewind() {
-        cancelVideoRewind()
-        if (!isCurrentVideo()) return
-        longPressHandler.postDelayed(
-            videoRewindRunnable,
-            ViewConfiguration.getLongPressTimeout().toLong()
-        )
     }
 
     private fun startVideoRewind() {
         val player = exoPlayer ?: return
         if (!isCurrentVideo()) return
+        twoFingerHoldActive = true
+        twoFingerTapCanceled = true
         isRewinding = true
         gestureWasRewind = true
+        gestureWasHoldAction = true
         playWhenReadyBeforeRewind = player.playWhenReady
         player.playWhenReady = false
         rewindStep()
@@ -487,12 +523,49 @@ class ViewerActivity : AppCompatActivity() {
     }
 
     private fun cancelVideoRewind() {
-        longPressHandler.removeCallbacks(videoRewindRunnable)
         longPressHandler.removeCallbacks(videoRewindTick)
         if (isRewinding) {
             exoPlayer?.playWhenReady = playWhenReadyBeforeRewind
         }
         isRewinding = false
+        twoFingerHoldActive = false
+    }
+
+    private fun cancelTouchInteractions() {
+        cancelPendingSingleTap()
+        cancelTapHoldInteraction()
+        cancelTwoFingerHoldInteraction()
+        cancelVideoFastForward()
+        cancelVideoRewind()
+        twoFingerHoldActive = false
+    }
+
+    private fun handleTapCandidate(event: MotionEvent) {
+        val now = event.eventTime
+        val dx = event.x - lastTapX
+        val dy = event.y - lastTapY
+        val isDoubleTap = lastTapUpTimeMs > 0L &&
+                now - lastTapUpTimeMs <= ViewConfiguration.getDoubleTapTimeout() &&
+                sqrt(dx * dx + dy * dy) <= doubleTapSlopPx
+
+        if (isDoubleTap) {
+            cancelPendingSingleTap()
+            lastTapUpTimeMs = 0L
+            openPicker()
+        } else {
+            lastTapUpTimeMs = now
+            lastTapX = event.x
+            lastTapY = event.y
+            tapHandler.postDelayed(
+                singleTapRunnable,
+                ViewConfiguration.getDoubleTapTimeout().toLong()
+            )
+        }
+    }
+
+    private fun cancelPendingSingleTap() {
+        tapHandler.removeCallbacks(singleTapRunnable)
+        lastTapUpTimeMs = 0L
     }
 
     private fun fastForwardStep() {
@@ -598,8 +671,7 @@ class ViewerActivity : AppCompatActivity() {
 
     override fun onPause() {
         super.onPause()
-        cancelVideoFastForward()
-        cancelVideoRewind()
+        cancelTouchInteractions()
         binding.glSurfaceView.onPause()
         headTracker.stop()
         exoPlayer?.playWhenReady = false

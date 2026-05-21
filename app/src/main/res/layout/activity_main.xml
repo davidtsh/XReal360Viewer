@@ -94,14 +94,22 @@
         <TextView
             style="@style/MainInstructionLine"
             android:layout_marginTop="11dp"
-            android:text="@string/instruction_shake" />
+            android:text="@string/instruction_double_tap" />
 
         <TextView
             style="@style/MainInstructionLine"
             android:layout_marginTop="11dp"
             android:text="@string/instruction_swipe" />
 
+        <TextView
+            style="@style/MainInstructionLine"
+            android:layout_marginTop="11dp"
+            android:text="@string/instruction_shake" />
 
+        <TextView
+            style="@style/MainInstructionLine"
+            android:layout_marginTop="11dp"
+            android:text="@string/instruction_tap" />
 
         <TextView
             style="@style/MainInstructionLine"
@@ -111,18 +119,7 @@
         <TextView
             style="@style/MainInstructionLine"
             android:layout_marginTop="11dp"
-            android:text="@string/instruction_two_finger_tap" />
-
-        <TextView
-            style="@style/MainInstructionLine"
-            android:layout_marginTop="11dp"
             android:text="@string/instruction_two_finger_hold" />
-
-        <TextView
-            style="@style/MainInstructionLine"
-            android:layout_marginTop="11dp"
-            android:text="@string/instruction_tap" />
-
 
     </LinearLayout>
 

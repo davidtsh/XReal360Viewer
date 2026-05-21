@@ -3,12 +3,12 @@
     <string name="app_name">XREAL 360° Viewer</string>
     <string name="open_360_file">OBRE FITXER 360°</string>
     <string name="main_instructions_header">INTERACCIONS</string>
-    <string name="main_instructions">TOCA PER TANCAR EL FITXER\nLLISCA PER CANVIAR FITXER DE LA MATEIXA CARPETA\nPINÇA PER FER ZOOM\nMANTÉN PREMUT PER ACCELERAR VÍDEO ×5\nTOCA AMB 2 DITS PER REPRODUIR/PAUSAR VÍDEO\nMANTÉN 2 DITS PER REBOBINAR VÍDEO ×5\nSACSEJA PER GIRAR 180°</string>
-    <string name="instruction_tap"><b>TOCA</b> PER TANCAR EL FITXER</string>
+    <string name="main_instructions">PINÇA PER FER ZOOM\nDOBLE TOC PER TANCAR EL FITXER\nLLISCA PER CANVIAR FITXER DE LA MATEIXA CARPETA\nSACSEJA PER GIRAR 180°\nMANTÉN 2 DITS PER REBOBINAR VÍDEO ×5\nMANTÉN PREMUT PER ACCELERAR VÍDEO ×5\nTOC PER REPRODUIR/PAUSAR VÍDEO</string>
+    <string name="instruction_tap"><b>TOC</b> PER REPRODUIR/PAUSAR VÍDEO</string>
+    <string name="instruction_double_tap"><b>DOBLE TOC</b> PER TANCAR EL FITXER</string>
     <string name="instruction_swipe"><b>LLISCA</b> PER CANVIAR FITXER DE LA MATEIXA CARPETA</string>
     <string name="instruction_pinch"><b>PINÇA</b> PER FER ZOOM</string>
     <string name="instruction_hold"><b>MANTÉN PREMUT</b> PER ACCELERAR VÍDEO ×5</string>
-    <string name="instruction_two_finger_tap"><b>TOCA AMB 2 DITS</b> PER REPRODUIR/PAUSAR VÍDEO</string>
     <string name="instruction_two_finger_hold"><b>MANTÉN 2 DITS</b> PER REBOBINAR VÍDEO ×5</string>
     <string name="instruction_shake"><b>SACSEJA</b> PER GIRAR 180°</string>
     <string name="main_credit">fet amb vibe coding per davidtsh</string>
