@@ -14,15 +14,11 @@ A 360° image and video viewer for **XREAL One** and **Nreal Air** glasses, buil
 
 1.1.3  Nreal Air axis mapping refinements. Tap now pauses/plays video. Two-finger hold rewinds video ×5. Double tap closes the file.
 
-<iframe 
-  width="315" 
-  height="560" 
-  src="https://www.youtube.com/embed/t-aiP_Hh0nA" 
-  title="YouTube Short" 
-  frameborder="0" 
-  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-  allowfullscreen>
-</iframe>
+
+
+![Watch the video](https://img.youtube.com/vi/t-aiP_Hh0nA/0.jpg)
+
+](https://youtube.com/shorts/t-aiP_Hh0nA)
 
 ## Features
 - 📷 Load any equirectangular 360° **image** (JPG/PNG) from your device gallery
