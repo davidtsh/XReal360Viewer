@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>xreal 360 viewer</title>
+    <meta
+      name="description"
+      content="xreal 360 viewer, vibe-coded by davidtsh."
+    />
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%20284%20284'%3E%3Crect%20width='284'%20height='284'%20rx='56'%20fill='%23303030'/%3E%3Cg%20fill='none'%20stroke='%23ff8528'%20stroke-linecap='round'%3E%3Ccircle%20cx='142'%20cy='142'%20r='96'%20stroke-width='10'%20opacity='.7'/%3E%3Cellipse%20cx='142'%20cy='142'%20rx='96'%20ry='18'%20stroke-width='7'/%3E%3Cellipse%20cx='142'%20cy='142'%20rx='70'%20ry='96'%20stroke-width='7'/%3E%3Cpath%20d='M72%2077c18%2018%2043%2027%2070%2027s52-9%2070-27M72%20207c18-18%2043-27%2070-27s52%209%2070%2027'%20stroke-width='7'/%3E%3C/g%3E%3C/svg%3E"
+    />
+    <style>
+      :root {
+        color-scheme: dark;
+        --background: #303030;
+        --button: #474747;
+        --button-border: #5f5f5f;
+        --logo: #ff8528;
+        --text: #c9c9c9;
+        --muted: #a1a1a1;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        min-height: 100%;
+        margin: 0;
+      }
+
+      body {
+        display: grid;
+        min-height: 100vh;
+        place-items: center;
+        overflow-x: hidden;
+        background: var(--background);
+        color: var(--text);
+        font-family: sans-serif;
+        text-align: center;
+      }
+
+      main {
+        display: flex;
+        width: min(100%, 420px);
+        min-height: 100vh;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 48px 28px;
+      }
+
+      .logo {
+        width: clamp(170px, 48vw, 188px);
+        height: auto;
+        margin-bottom: 5px;
+      }
+
+      h1 {
+        margin: 0;
+        color: var(--text);
+        font-size: clamp(17px, 4.8vw, 22px);
+        font-weight: 400;
+        line-height: 1.14;
+        letter-spacing: 0.16em;
+      }
+
+      .credit {
+        margin: 7px 0 42px;
+        color: var(--text);
+        font-size: 10px;
+        font-weight: 400;
+        line-height: 1;
+        letter-spacing: 0.64em;
+      }
+
+      .download-wrap {
+        position: relative;
+        display: grid;
+        place-items: center;
+        width: 278px;
+        height: 73px;
+        max-width: 100%;
+        margin: 0 auto;
+      }
+
+      .download-wrap::before {
+        position: absolute;
+        inset: 0;
+        border: 1px solid rgba(255, 133, 40, 0.6);
+        border-radius: 35px;
+        background: rgba(255, 133, 40, 0.3);
+        content: "";
+        opacity: 0.25;
+      }
+
+      .download {
+        position: relative;
+        z-index: 1;
+        display: inline-flex;
+        width: 254px;
+        height: 57px;
+        max-width: calc(100vw - 56px);
+        align-items: center;
+        justify-content: center;
+        border: 1px solid var(--button-border);
+        border-radius: 29px;
+        background: var(--button);
+        box-shadow: 0 4px 11px rgba(0, 0, 0, 0.28);
+        color: var(--text);
+        font-size: 13px;
+        font-weight: 400;
+        line-height: 1;
+        letter-spacing: 0.24em;
+        text-decoration: none;
+        text-transform: uppercase;
+        transition:
+          border-color 160ms ease,
+          color 160ms ease,
+          transform 160ms ease;
+      }
+
+      .download:hover,
+      .download:focus-visible {
+        border-color: var(--logo);
+        color: #ffffff;
+        transform: translateY(-1px);
+      }
+
+      .github {
+        display: inline-flex;
+        max-width: 100%;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        margin-top: 24px;
+        padding: 9px 14px;
+        border: 1px solid var(--button-border);
+        border-radius: 999px;
+        background: rgba(71, 71, 71, 0.72);
+        box-shadow: 0 3px 9px rgba(0, 0, 0, 0.22);
+        color: var(--muted);
+        font-size: 10px;
+        font-weight: 400;
+        line-height: 1.45;
+        letter-spacing: 0.12em;
+        overflow-wrap: anywhere;
+        text-decoration: none;
+      }
+
+      .github svg {
+        width: 23px;
+        height: 23px;
+        flex: 0 0 auto;
+        fill: currentColor;
+      }
+
+      .github:hover,
+      .github:focus-visible {
+        border-color: var(--logo);
+        color: var(--logo);
+        text-decoration: none;
+      }
+
+      .video {
+        position: relative;
+        display: block;
+        width: min(100%, 315px);
+        margin-top: 28px;
+        aspect-ratio: 1 / 1;
+        border: 1px solid var(--button-border);
+        border-radius: 12px;
+        background: #222222;
+        box-shadow: 0 8px 18px rgba(0, 0, 0, 0.26);
+        overflow: hidden;
+      }
+
+      .video iframe {
+        display: block;
+        width: 100%;
+        height: 100%;
+        border: 0;
+      }
+
+      .video:hover,
+      .video:focus-visible {
+        border-color: var(--logo);
+      }
+
+      .download:focus-visible,
+      .github:focus-visible,
+      .video:focus-visible {
+        outline: 2px solid rgba(255, 133, 40, 0.78);
+        outline-offset: 6px;
+      }
+
+      @media (max-width: 420px) {
+        main {
+          padding: 42px 24px;
+        }
+
+        h1 {
+          max-width: 13ch;
+        }
+
+        .credit {
+          max-width: 24ch;
+          line-height: 1.6;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          transition-duration: 0.01ms !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main aria-label="xreal 360 viewer">
+      <svg
+        class="logo"
+        viewBox="0 0 284 284"
+        role="img"
+        aria-labelledby="logo-title"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <title id="logo-title">xreal 360 viewer logo</title>
+        <path d="M142,46C195.586,46 239,89.2187 239,142.5C239,195.781 195.586,239 142,239C88.4142,239 45,195.781 45,142.5C45,89.2187 88.4142,46 142,46Z" fill="none" stroke="var(--logo)" stroke-opacity="0.5" stroke-width="6" />
+        <path d="M142,125.796C168.447,125.796 192.352,127.774 209.61,130.957C218.252,132.551 225.152,134.433 229.856,136.485C232.214,137.513 233.937,138.547 235.046,139.547C236.16,140.551 236.5,141.371 236.5,142.001C236.5,142.631 236.16,143.451 235.046,144.455C233.937,145.455 232.214,146.49 229.856,147.518C225.152,149.569 218.252,151.451 209.61,153.045C192.352,156.228 168.447,158.206 142,158.206C115.553,158.206 91.6481,156.228 74.3896,153.045C65.7482,151.451 58.8479,149.569 54.1436,147.518C51.7862,146.49 50.0644,145.455 48.9551,144.455C47.8413,143.451 47.5001,142.631 47.5,142.001C47.5,141.371 47.8412,140.551 48.9551,139.547C50.0644,138.547 51.7861,137.512 54.1436,136.485C58.8479,134.433 65.7482,132.551 74.3896,130.957C91.6481,127.774 115.553,125.796 142,125.796Z" fill="none" stroke="var(--logo)" stroke-width="3" />
+        <path d="M141.999,176.943C164.093,176.943 184.052,178.788 198.45,181.753C205.662,183.237 211.4,184.987 215.298,186.885C217.25,187.835 218.662,188.785 219.567,189.695C220.467,190.601 220.762,191.356 220.762,191.968C220.762,192.579 220.467,193.335 219.567,194.241C218.662,195.151 217.25,196.101 215.298,197.052C211.4,198.949 205.662,200.699 198.45,202.183C184.052,205.148 164.093,206.992 141.999,206.992C119.906,206.992 99.9463,205.148 85.5481,202.183C78.3368,200.699 72.5995,198.949 68.7014,197.052C66.7493,196.101 65.3365,195.151 64.4319,194.241C63.5315,193.335 63.2375,192.579 63.2375,191.968C63.2376,191.356 63.5318,190.601 64.4319,189.695C65.3365,188.785 66.7493,187.835 68.7014,186.885C72.5994,184.987 78.3367,183.237 85.5481,181.753C99.9463,178.788 119.906,176.943 141.999,176.943Z" fill="none" stroke="var(--logo)" stroke-width="3" />
+        <path d="M141.999,77.0095C164.093,77.0095 184.052,78.8548 198.45,81.8191C205.662,83.3038 211.4,85.0535 215.298,86.9509C217.25,87.9011 218.662,88.8514 219.567,89.7615C220.467,90.6673 220.762,91.4226 220.762,92.0339C220.762,92.6453 220.467,93.4015 219.567,94.3074C218.662,95.2174 217.25,96.1678 215.298,97.1179C211.4,99.0153 205.662,100.765 198.45,102.25C184.052,105.214 164.093,107.058 141.999,107.058C119.906,107.058 99.9463,105.214 85.5481,102.25C78.3368,100.765 72.5995,99.0153 68.7014,97.1179C66.7493,96.1677 65.3365,95.2175 64.4319,94.3074C63.5315,93.4015 63.2375,92.6453 63.2375,92.0339C63.2376,91.4227 63.5318,90.6672 64.4319,89.7615C65.3365,88.8513 66.7493,87.9012 68.7014,86.9509C72.5994,85.0535 78.3367,83.3038 85.5481,81.8191C99.9463,78.8548 119.906,77.0095 141.999,77.0095Z" fill="none" stroke="var(--logo)" stroke-width="3" />
+        <path d="M125.794,142C125.794,115.553 127.773,91.6482 130.956,74.3897C132.549,65.7483 134.432,58.848 136.483,54.1436C137.511,51.786 138.546,50.0635 139.545,48.9542C140.549,47.8405 141.37,47.5001 142,47.5001C142.629,47.5001 143.45,47.8405 144.454,48.9542C145.453,50.0635 146.488,51.786 147.516,54.1436C149.567,58.848 151.45,65.7483 153.044,74.3897C156.226,91.6482 158.205,115.553 158.205,142C158.205,168.447 156.226,192.352 153.044,209.61C151.45,218.252 149.567,225.152 147.516,229.857C146.488,232.214 145.453,233.936 144.454,235.045C143.45,236.159 142.629,236.5 142,236.5C141.37,236.5 140.549,236.159 139.545,235.045C138.546,233.936 137.511,232.214 136.483,229.857C134.432,225.152 132.549,218.252 130.956,209.61C127.773,192.352 125.794,168.447 125.794,142Z" fill="none" stroke="var(--logo)" stroke-width="3" />
+        <path d="M176.942,142.001C176.942,119.907 178.787,99.9478 181.751,85.5496C183.236,78.3381 184.986,72.6 186.883,68.7019C187.833,66.75 188.784,65.3379 189.694,64.4333C190.6,63.533 191.355,63.2381 191.966,63.238C192.578,63.238 193.334,63.533 194.24,64.4333C195.15,65.338 196.1,66.7501 197.05,68.7019C198.948,72.6 200.697,78.3381 202.182,85.5496C205.146,99.9478 206.991,119.907 206.991,142.001C206.991,164.094 205.146,184.054 202.182,198.452C200.697,205.663 198.948,211.401 197.05,215.299C196.1,217.251 195.15,218.663 194.24,219.568C193.334,220.468 192.578,220.762 191.966,220.762C191.355,220.762 190.599,220.468 189.694,219.568C188.784,218.663 187.833,217.251 186.883,215.299C184.986,211.401 183.236,205.663 181.751,198.452C178.787,184.054 176.942,164.094 176.942,142.001Z" fill="none" stroke="var(--logo)" stroke-width="3" />
+        <path d="M77.0079,142.001C77.0079,119.907 78.8532,99.9477 81.8175,85.5495C83.3022,78.338 85.0519,72.5999 86.9493,68.7018C87.8995,66.7499 88.8498,65.3379 89.7599,64.4333C90.6657,63.533 91.421,63.238 92.0323,63.238C92.6437,63.238 93.3999,63.5329 94.3058,64.4333C95.2158,65.3379 96.1662,66.75 97.1163,68.7018C99.0138,72.5999 100.763,78.338 102.248,85.5495C105.212,99.9477 107.057,119.907 107.057,142.001C107.057,164.094 105.213,184.054 102.248,198.452C100.763,205.663 99.0137,211.4 97.1163,215.299C96.1661,217.251 95.2159,218.663 94.3058,219.568C93.3999,220.468 92.6437,220.762 92.0323,220.762C91.4211,220.762 90.6656,220.468 89.7599,219.568C88.8497,218.663 87.8996,217.251 86.9493,215.299C85.0519,211.4 83.3022,205.663 81.8175,198.452C78.8532,184.054 77.008,164.094 77.0079,142.001Z" fill="none" stroke="var(--logo)" stroke-width="3" />
+      </svg>
+
+      <h1>xreal 360 viewer</h1>
+      <p class="credit">vibe-coded by davidtsh</p>
+
+      <div class="download-wrap" aria-hidden="false">
+        <a
+          class="download"
+          href="xreal_360_viewer_vegeta_1_1_3.apk"
+          download="xreal_360_viewer_vegeta_1_1_3.apk"
+        target="_blank" >Download</a>
+      </div>
+
+      <a class="github" href="https://github.com/davidtsh/XReal360Viewer" target="_blank">
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 .5C5.65.5.5 5.65.5 12c0 5.09 3.29 9.39 7.86 10.91.58.1.79-.25.79-.56v-2.14c-3.2.7-3.87-1.36-3.87-1.36-.53-1.33-1.28-1.68-1.28-1.68-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.18 1.76 1.18 1.03 1.75 2.69 1.25 3.35.96.1-.74.4-1.25.73-1.54-2.55-.29-5.23-1.28-5.23-5.68 0-1.26.45-2.28 1.18-3.08-.12-.29-.51-1.46.11-3.04 0 0 .96-.31 3.16 1.17.92-.26 1.9-.38 2.88-.39.98.01 1.96.13 2.88.39 2.19-1.48 3.15-1.17 3.15-1.17.63 1.58.24 2.75.12 3.04.74.8 1.18 1.82 1.18 3.08 0 4.42-2.69 5.39-5.25 5.67.41.36.78 1.06.78 2.14v3.15c0 .31.21.67.79.56A11.51 11.51 0 0 0 23.5 12C23.5 5.65 18.35.5 12 .5Z" />
+        </svg>
+        davidtsh/XReal360Viewer
+      </a>
+
+      <div class="video">
+        <iframe
+          width="1193"
+          height="1193"
+          src="https://www.youtube.com/embed/t-aiP_Hh0nA"
+          title="xReal 360 viewer"
+          frameborder="0"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          referrerpolicy="strict-origin-when-cross-origin"
+          allowfullscreen
+        ></iframe>
+      </div>
+    </main>
+  </body>
+</html>

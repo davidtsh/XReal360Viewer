@@ -4,7 +4,7 @@ A 360° image and video viewer for **XREAL One** and **Nreal Air** glasses, buil
 
 ---
 
-## [Download](https://github.com/davidtsh/XReal360Viewer/tree/Vegeta/releases)
+## [Download](http://davidalandi.cat/xreal360viewer)
 
 1.0.0  Only photos. Tap to open a new one.
 
